@@ -25,9 +25,9 @@ I could've made that above process automatic but couldn't be bothered/didn't wan
 
 
 #Constants
-last_season = 2019
+last_season = 2020 #?
 universalURL = 'https://afltables.com/afl/seas/{}.html'
-year_started = 1897
+year_started = 1990 # 1897<- interesting
 colours = {"GoldCoast":"yellow", "Geelong":"royalblue", "Essendon":"red", "Carlton":"navy", "Collingwood":"black", "Melbourne":"lime", "Hawthorn":"brown", "Fitzroy":"grey", "St Kilda":"crimson", "Richmond":"yellow", "North Melbourne":"blue", "Western Bulldogs":"green", "Fremantle":"purple","Greater Western Sydney":"orange", "Brisbane Lions": "orangered", "Port Adelaide":"cyan", "West Coast":"darkgoldenrod", "Sydney":"deeppink", "Adelaide":"royalblue"} #ugh takes so long to write out
 
 def getURL(url):
@@ -49,7 +49,7 @@ with open("prelimsavefile.txt", "r") as f:
     clubs = ast.literal_eval(f.read())
 
 #MAIN:
-""" RETRIEVE DATA
+#""" RETRIEVE DATA
 clubs = {} # {"club":[[years total], [years won]]}
 for k in range(year_started, last_season + 1):
     text = getURL(universalURL.format(k))
@@ -124,7 +124,7 @@ for k in range(year_started, last_season + 1):
         clubs[team2] = [[k], [k]]
 with open("prelimsavefile.txt", "w") as f:
     f.write(str(clubs))
-"""
+#"""
 
 all_clubs_windows = 0
 all_club_window_lengths = []
@@ -197,17 +197,18 @@ for i in clubs:
     all_clubs_years_twixt_clusters_1990 += years_between_clusters_1990
     ax.step(x, y, alpha=0.7, where='post', label=("{} {} {} {} {} {} {} {}".format(
         i,
-        str(len(clubs[i][0])),
+        len(clubs[i][0]),
         p(len(clubs[i][1])/len(clubs[i][0])),
         total_windows,
         round(statistics.mean(window_lengths), 2),
         round(statistics.mean(years_between_prelims), 2),
         round(statistics.mean(years_between_clusters), 2),
-        round(statistics.mean(years_between_clusters_1990), 2)
+        ' ' #round(statistics.mean(years_between_clusters_1990), 2)
     )))
 
-ax.set_xticks([i for i in range(1890, (last_season + (last_season % 10) + 10), 10)])
-plt.ylabel('Prelim Finals w/ wins as dots ' + 
+ax.set_xticks([i for i in range(year_started - int(str(year_started)[-1]), (last_season + (last_season % 10) + 10), 10)])
+plt.ylabel('Prelim Finals w/ wins as dots ') 
+'''+ 
     p(club_windows_1990/prelims_1990) + 
     " " + 
     str(round(statistics.mean(club_window_lengths_1990), 2)) + 
@@ -215,7 +216,7 @@ plt.ylabel('Prelim Finals w/ wins as dots ' +
     str(round(statistics.mean(club_prelim_distances_1990), 2)) + 
     " " + 
     str(round(statistics.mean(all_clubs_years_twixt_clusters_1990), 2))
-)    
+)'''
 plt.xlabel('Years')
 plt.title("Prelim finals by club " + 
     p(all_clubs_windows/sum(len(clubs[i][0]) for i in clubs)) + 

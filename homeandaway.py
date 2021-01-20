@@ -25,7 +25,7 @@ slowly fall down it the next. That doesn't sound like what happens.
 #constants
 universalURL = 'https://afltables.com/afl/seas/ladders/laddersyby.html' 
 year_started = 1897
-last_season = 2019 #<-don't change this value, it is auto updated
+this_season = 2020 #<-this is a manually used value, see last_season below which is autoupdated
 teams_in_comp = []
 finals_cutoff = []
 teams = {}
@@ -40,10 +40,10 @@ def getURL(url):
 text = getURL(universalURL)
 soup = BeautifulSoup(text, 'html.parser')
 tables = soup.findAll('table')
-last_season = int(tables[0].find('tr').find('a').text) - 1
+last_season = this_season# int(tables[0].find('tr').find('a').text) - 1
 tables.reverse()
 
-for i in tables[1:-1]:
+for i in tables[1:]:
     finals_lookout = True
     rows = i.findAll('tr')
     year = int(rows[0].find('a').text)
