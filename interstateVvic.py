@@ -1,6 +1,7 @@
 #help("modules") #
 import urllib.request
 import matplotlib.pyplot as plt
+import math
 import statistics
 import numpy as np
 import pandas as pd
@@ -131,6 +132,7 @@ class Club(object):
         self._seasons = {}
     #def get_season(self, year):
     #    return self._seasons[year - 2000]
+victoria = ["M.C.G.", "Princes Park", "Docklands", "Kardinia Park"]
 
 # == multiple home grounds in this stretch actually
 Richmond = Club("Richmond", ["M.C.G."], False)
@@ -209,8 +211,20 @@ interstate_premierships = []
 interstate_v_vic_grand_finals = []
 number_of_interstate_sides_per_year = []
 
+total_standard_games = 0
+total_finals = 0
+all_inter_haa_wins = 0
+all_inter_finals_wins = 0
+
+west_coast_finals_wins_per_year = []
+all_west_coast_finals_v_vic = 0
+WC_inter_finals_wins = 0
+
+wc_home_and_away = []
+all_wc_haa = 0
+all_wc_haa_wins = 0
+
 for year in range(year_started, this_season + 1):
-    print(year)
     text = getURL(universalURL.format(year))
     soup = BeautifulSoup(text, 'html.parser')
     tables = soup.findAll('table')
@@ -226,6 +240,10 @@ for year in range(year_started, this_season + 1):
     inter_finals_games = 0
     inter_inter_standard_wins = 0
     inter_standard_games = 0
+    wc_finals_games = 0
+    wc_finals_wins = 0
+    wc_standard_games = 0
+    wc_standard_wins = 0
     for i in tables[::2]:
         links = i.findAll('a')
         team1 = links[0].text
@@ -241,6 +259,12 @@ for year in range(year_started, this_season + 1):
                 inter_inter_finals_wins += 0.5
             elif clubs[match._winner]._interstate:
                 inter_inter_finals_wins += 1
+            if clubs[team1] == WC or clubs[team2] == WC:
+                wc_finals_games += 1
+                if team1_score == team2_score:
+                    wc_finals_wins += 0.5
+                elif clubs[match._winner] == WC:
+                    wc_finals_wins += 1
         clubs[team1]._seasons[year]._total_matches.append(match)
         clubs[team1]._seasons[year]._finals_matches.append(match)
         clubs[team2]._seasons[year]._total_matches.append(match)
@@ -283,6 +307,10 @@ for year in range(year_started, this_season + 1):
                 finals_lookout = False
                 finals_cutoff.append(position - 1)
             #should i record premiership or last place?
+    if wc_finals_games > 0:
+        west_coast_finals_wins_per_year.append(100 * wc_finals_wins / wc_finals_games)
+        all_west_coast_finals_v_vic += wc_finals_games
+        WC_inter_finals_wins += wc_finals_wins
     rows = BeautifulSoup(getURL(universalURL.format(year)), features="lxml").findChildren('table')[-x - 4].findChildren('tr')[2:-1]
     for i in rows:
         collumns = i.findAll('td')
@@ -330,12 +358,24 @@ for year in range(year_started, this_season + 1):
         match = Match(team1, team2, team1_score, team2_score, venue)
         if match._inter_match:
             inter_standard_games += 1
-            if team1_score != team2_score and clubs[match._winner]._interstate:
+            if team1_score == team2_score:
+                inter_inter_standard_wins += 0.5
+            elif clubs[match._winner]._interstate:
                 inter_inter_standard_wins += 1
+            if clubs[team1] == WC or clubs[team2] == WC:
+                wc_standard_games += 1
+                if team1_score == team2_score:
+                    wc_standard_wins += 0.5
+                elif clubs[match._winner] == WC:
+                    wc_standard_wins += 1
         clubs[team1]._seasons[year]._total_matches.append(match)
         clubs[team1]._seasons[year]._home_and_away_matches.append(match)
         clubs[team2]._seasons[year]._total_matches.append(match)
         clubs[team2]._seasons[year]._home_and_away_matches.append(match)
+    if wc_standard_games > 0:
+        wc_home_and_away.append(100 * wc_standard_wins / wc_standard_games)
+        all_wc_haa += wc_standard_games
+        all_wc_haa_wins += wc_standard_wins
     just_inter_games_inter_home.append(100 * inter_inter_standard_wins / inter_standard_games)
     just_inter_games_vic_home.append(100 * (inter_standard_games - inter_inter_standard_wins) / inter_standard_games)
     if inter_finals_games > 0:
@@ -387,6 +427,11 @@ for year in range(year_started, this_season + 1):
     else:
         interstate_finals.append(None)
     victorian_finals.append(100 * statistics.mean(just_victorian_finals))
+    total_standard_games += inter_standard_games
+    total_finals += inter_finals_games
+    all_inter_finals_wins += inter_inter_finals_wins
+    all_inter_haa_wins += inter_inter_standard_wins
+    print(year)
 
 '''
 #MAIN:
@@ -565,15 +610,15 @@ y9 = just_inter_games_vic_finals
 y10 = just_inter_games_inter_finals
 y_10_2 = [round(y10[i], 4) for i in range(len(y10)) if i + year_started in interstate_premierships]
 y_10_3 = [round(y10[i], 4) for i in range(len(y10)) if i + year_started in interstate_v_vic_grand_finals]
+
 fig = plt.figure()
 ax = fig.add_subplot(111)
-ax.set_xticks(range(year_started, last_season + 1), 5)
+ax.set_xticks(range(1980, math.ceil(last_season / 5) * 5 + 1, 5))
 ax.set_yticks(range(0, 101, 5))
 ax.minorticks_on()
 ax.grid(which='minor')
 ax.grid(which='major', color="black")
-#ax.set_prop_cycle(color=running_colours)
-#ax.step([i for i in range(year_began, year_began + len(teams_in_comp[start_diff:]))], teams_in_comp[start_diff:], 'k--', label="Teams In Comp", where="post")
+
 ax.plot(x, [50 for i in range(len(x))], 'k--')
 '''ax.plot(x, y3, 'r', label="Victorian. Total avg: " + str(round(statistics.mean(victorian), 4)))
 ax.plot(x, y4, 'b', label="Interstate. Total avg: " + str(round(statistics.mean(interstate), 4)))
@@ -581,24 +626,31 @@ ax.plot(x, y5, 'g', label="Victorian finals. Total avg: " + str(round(statistics
 ax.plot(x, y6, 'y', label="Interstate finals. Total avg: " + str(round(statistics.mean(interstate_finals), 4)))#'''
 #ax.plot(x, y7, 'c', label="Victorian2. Total avg: " + str(round(statistics.mean(just_inter_games_vic_home), 4)))
 ax.step(range(year_started, last_season + 1), number_of_interstate_sides_per_year, color='grey', linestyle='dashed', label="Percentage of Comp that's interstate", where="post")
-ax.plot(x, y8, 'm', label="Interstate v Vic during home and away season. " + str(len(x)) + " yr total avg: " + str(round(statistics.mean(just_inter_games_inter_home), 4)))
+ax.plot(x, y8, 'm', label="Interstate v Vic during home and away season. Total games: " + str(total_standard_games) + ". Total wins: " +  str(all_inter_haa_wins) + ". Win  %: " + str(round(100 * all_inter_haa_wins / total_standard_games, 4)))
 #ax.plot(x, y9, 'darkorange', label="Victorian finals2. Total avg: " + str(round(statistics.mean(just_inter_games_vic_finals), 4)))
 ax.plot(x[4:7], y10[4:7], 'lime')
-ax.plot(x[7:], y10[7:], 'lime', label="Interstate v Vic during finals. " + str(len(x)) + " yr total avg: " + str(round(statistics.mean([i for i in just_inter_games_inter_finals if i != None]), 4)))
-#print(interstate_v_vic_grand_finals)
-#print(y_8_2)
-ax.scatter(interstate_v_vic_grand_finals, y_10_3, c='r', s=110.0, label="Interstate v vic gfs. Total: " + str(len(y_10_3)) + ". Total gf appearances (expected is twice below #): " + str(len(list(set(interstate_v_vic_grand_finals) | set(interstate_premierships))) + len(list(set(interstate_v_vic_grand_finals) & set(interstate_premierships)))))
-ax.scatter(interstate_premierships, y_10_2, c='b', label="Interstate premierships. Total: " + str(len(y_10_2)) + ". Expected given # interstate teams in comp ea year: " + str(round(sum(number_of_interstate_sides_per_year) / 100, 2)))
-#ax.plot(x, y, 'g', label="Melbourne " + str(round(statistics.mean(melbournian_averages), 4)))
-#ax.plot(x, y2, 'y', label="Interstate and geelong " + str(round(statistics.mean(interstate_and_geelong_averages), 4)))
-#ax.scatter(x, y)
-#ax.scatter(x, y2)
-#ax.scatter(x, y)
-#ax.invert_yaxis()
+ax.plot(x[7:], y10[7:], 'lime', label="Interstate v Vic during finals. Total games: " + str(total_finals) + ". Total wins: " + str(all_inter_finals_wins) + ". Win %: " + str(round(100 * all_inter_finals_wins / total_finals, 4)))
+
+#Uncomment below to see WC specifically
+'''ax.plot(x[5:], wc_home_and_away, 'aqua', label="WC H&A v victorians. Total games: " + str(all_wc_haa) + ". Total wins: " + str(all_wc_haa_wins) + ". Win %: " + str(round(100 * all_wc_haa_wins / all_wc_haa, 4)))
+west_coast_finals_years_v_vic = [] 
+#post 2020: 492 h&a games, 284.5 wins, 57.82%. 43 finals, 21.5 wins, 50%.
+for i in x[5:]:
+    if len(clubs["West Coast"]._seasons[i]._finals_matches) > 0:
+        for j in clubs["West Coast"]._seasons[i]._finals_matches:
+            if j._inter_match:
+                west_coast_finals_years_v_vic.append(i)
+                break
+ax.plot(west_coast_finals_years_v_vic, west_coast_finals_wins_per_year, 'g', label="WC finals v victorians. Total games: " + str(all_west_coast_finals_v_vic) + "Total wins: " + str(WC_inter_finals_wins) + ". Win %: " + str(round(100 * WC_inter_finals_wins / all_west_coast_finals_v_vic, 2)))#'''
+
+expected_interstate_premierships = sum(number_of_interstate_sides_per_year) / 100
+ax.scatter(interstate_v_vic_grand_finals, y_10_3, c='r', s=110.0, label="Interstate v vic gfs. Total: " + str(len(y_10_3)) + ". Total gf appearances: " + str((len(list((set(interstate_v_vic_grand_finals) & set(interstate_premierships)) ^ set(interstate_premierships))) + len(list(set(interstate_v_vic_grand_finals) | set(interstate_premierships))))) + ". Expected: " + str(round(2 * expected_interstate_premierships, 2)))
+ax.scatter(interstate_premierships, y_10_2, c='b', label="Interstate premierships. Total: " + str(len(y_10_2)) + ". Expected (given # interstate teams in comp ea year): " + str(round(expected_interstate_premierships, 2)))
+
 plt.legend()
 plt.xlabel('Years')
 plt.ylabel('Percentage')#Win Percentage')    #Ladder Position
-plt.title('Win percentage of interstate teams in interstate v vic games since ' + str(year_started))#Win percentage of vic & interstate sides of the last 30 years')
+plt.title('Win percentage of interstate teams in interstate v vic games ' + str(year_started) + "-" + str(last_season))#Win percentage of vic & interstate sides of the last 30 years')
 
 
 """
@@ -610,16 +662,19 @@ I write this precedeeing the 2021 season. So as of now, interstate sides have
 2. Won 12/21 of those appearances, for 12/31 premierships. This is despite the
     fact that they represent just under half of all sides (8/18) since 2012, growing
     sporadically from the 3/14 sides that were present in 1990.
-3. 18/21 grand finas have been against vic sides.
+3. 18/21 grand finals have been against vic sides.
 4. Have won 9/18 of those grand finals. 
 5. Interestingly, won 7/9 (includes brisbane 3-peat) from first half of those grand finals and 
     2/9 (includes hawks 3-peat) of all grand finals since.
-6. They win 2% less of their games against the vics during the home and away season. 
-7. THey win 2% more of their games against the vics during the finals series.
+6. They win 1.6% less of their games against the vics during the home and away season. 
+7. THey win 0.65% less of their games against the vics during the finals series.
 8. Unfortunately, even though there is 30 years being considered, the trends of who is
     better seem to be too long to make any guesses as to how long an 'ascendancy' will last.
     One could hypothesise that the extent of an ascendancy will be matched at its conclusion, as
     happenned when the 2002-2007 interstate ascendancy was followed by the 2008-2013 vic ascendancy.
+
+    I think in light of the closeness of the numbers we can safely say that these were just extended
+    streaks of flipping heads though.
 8.1. The significance of history depends on where you're standing in it. If I'd done this just after
     2006, I would have seen the same home and away and finals win percentages, but 10 premierships to
     an expected 6.72!, interstaters went 10/12 gfs!!!!!!!! We'd all be here trying to figure out what
@@ -636,19 +691,20 @@ I write this precedeeing the 2021 season. So as of now, interstate sides have
     dominance. I'll just have to keep faith that it'll all be squared up in the end.
 
 9. Interstate sides do lose more finals and home and away games then they are expected to though.
-    ~2.6% more games during the home and away and ~2.2% more games during finals. With the current
-    8 interstate teams, playng 22 games each in a home and away season, that adds up to 0.57 a home
-    and away game each team each year or 1 game every 2 years that they would lose to a vic side
-    that they otherwise would have won if they weren't interstate. Finals is always weird, so I'll
-    just leave it at an extra 2.6 losses every 100 vic v interstate finals. There's a lot less data
-    on the finals than the home and away games of course, so it's more malleable to change in the
-    next few years. But seeing as how it was 45-50 in all the above years I checked (I think) except
-    for '91 (17.5%! We'd all be sitting here trying to figure out what it was about finals that made
-    interstate sides so much more likely to lose them), I'd think it's fairly strong/correct/reasonable.
+    1.6% more h&a games. That's 1.6% * 8 * 22 * (% of 22 games played against vics, changes every year)
+    more losses / season for interstate teams.
+
+    151 vic v interstate finals. 1 (3? 5?) draw and 74 interstate wins, == 1 loss caused by an interstate
+    side so far. That's congruent with what you'd expect if there was 0 difference in finals between
+    interstate and vic teams.
+    
+    There's a lot less data on the finals than the home and away games of course, so it's more
+    malleable to change. But seeing as how it was 45-50 in all the above years
+    I checked (I think) except for '91 (17.5%! We'd all be sitting here trying to figure out what it
+    was about finals that made interstate sides so much more likely to lose them), I'd think it's
+    fairly strong/correct/reasonable.
 """
 
-'''ay = fig.add_subplot(111)
-y5 = 
-ay.plot(x, y5)'''
+#ay = fig.add_subplot(111)
 
 plt.show()
