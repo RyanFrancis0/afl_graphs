@@ -7,57 +7,6 @@ import numpy as np
 import pandas as pd
 from bs4 import BeautifulSoup
 
-
-"""
-Hypothesis 1: 
-A refutation of the interstate sides suffer more than melbourne based ones theory.
-In the AFL, lack of co-residents (and possibly more experience) at a ground is a bigger advantage
-than extra travel is a disadvantage. As in interstate teams (+geelong) have an advantage over
-the melbourne based teams by virtue of the extremely unfortunate concentration of clubs in 
-melbourne.
-
-Two ways to prove: 
-1st: Examine ladder positions of interstate sides of the past 20-30 years and compare.
-2nd: Examine win to loss ratio of interstate sides at different grounds in the last 20-30 years
-        and compare.
-
-Sub pthingy 1: (predicate?)
-As sides go through their natural rise and fall, sometimes there will be periods where a majority
-of interstate sides are perfectly naturally just doing well all around the same time
-(2001-2007???) and vice versa (2008-2011???). Solar and lunar exlipses if you will (or their
-opposite??). This might skew the results if too small a pool of data is examined (i.e. proof 1).
-So both proofs must be done. 
-Sub pthingy 2:
-A factor of Geelong's success by virtue of being only one at home ground dand virtue of experience
-and low travel to other melbourne grounds (being given "home games" they don't want at melbourne
-grounds). - I do not think this is provable as other clubs have had sustained periods of success
-(west coast, sydney, going further back hawthorn).
-Sub pthingy 3:
-The 'cumulative weariness' theory. That while the effets of trave lmay not be noticeable one week
-to the next, it accumulates throughout a season and by finals time interstae sides are , causing
-them to have finals losses they shouldn't. So the data must be analysed for 
-This may or may not be offset by the pre-finals bye, depending on which accredited school of
-philosophy one ascribes to. The low numbers of finals statistics for interstate sides makes this 
-whole sub thingy optimistic to be proven one way or another.
-Sub pthingy 4:
-Length of trip may be a factor. Purely on the basis that 1. I can't be quite that bothered and 2.
-out of all the clubs WC has the best win rate at the gabba, I will not be exploring this or taking
-it into account in my study.
-Sub pthingy 5:
-When GC and GWS were introduced, they were both atrocious for a few seasons, for reasons that 
-obviously had nothing to do with home ground advantage. This may skew the results. Will need to
-examine changes without them.
-Sub pthingy 6:
-For the last ~20 years Carlton and Essendon have split home games evenly between the MCG and
-Docklands. On the experience argument, one would expect them to lose at those grounds more often
-than permanent tennants. This probably influences their home ground advantage in some way.
-Sub pthingy 7:
-Its obviously not going to be a big advantage either way. Interstate sides and melbourne sides
-both go through extended ups and downs, or flash in the pan ups and downs.
-Sub pthingy 8:
-I should really go back over ptests (different p I'm 99% sure) again.
-"""
-
 """
 Hypothesis 2: A refutation of the more wins and/or better percentage is equivalent to a better side 
 theory. By natural extension, that they are directly related (e.g. 10 more wins better side 
@@ -83,7 +32,7 @@ as they were "upset" in the home and away season.
 
 #constants
 universalURL = 'https://afltables.com/afl/seas/{}.html' 
-year_started = 1982#1990 #1897
+year_started = 1990#1990 #1897
 this_season = 2020#<-this is a manually used value, see last_season below which is autoupdated
 teams_in_comp = []
 finals_cutoff = []
@@ -135,8 +84,8 @@ class Club(object):
 victoria = ["M.C.G.", "Princes Park", "Docklands", "Kardinia Park"]
 
 # == multiple home grounds in this stretch actually
-Richmond = Club("Richmond", ["M.C.G."], False)#["Waverly", "Docklands", "Football Park", "Subiaco"]
-WC = Club("West Coast", ["Subiaco", "W.A.C.A", "Perth Stadium"], True)#["M.C.G."]
+Richmond = Club("Richmond", ["M.C.G."], False)
+WC = Club("West Coast", ["Subiaco", "W.A.C.A", "Perth Statdium"], True)#
 GC = Club("Gold Coast", ["Carrara"], True)
 Brisbane = Club("Brisbane Lions", ["Gabba"], True)
 STK = Club("St Kilda", ["Docklands"], False)
@@ -180,6 +129,8 @@ clubs = {
     "Geelong": Geelong
     }
 
+current_clubs = set(clubs.values())
+
 class Match(object):
     def __init__(self, home_team, away_team, home_team_score, away_team_score, venue):
         self._home_team = home_team
@@ -188,144 +139,64 @@ class Match(object):
         self._away_team_score = away_team_score
         self._margin = home_team_score - away_team_score
         self._winner = "draw"
+        self._loser = "draw"
         if self._margin > 0:
             self._winner = self._home_team 
+            self._loser = self._away_team 
         elif self._margin < 0:
             self._winner = self._away_team
-        self._inter_match = (clubs[self._home_team]._interstate and not clubs[self._away_team]._interstate) or (clubs[self._away_team]._interstate and not clubs[self._home_team]._interstate)
+            self._loser = self._home_team 
         self._venue = venue
 
-melbournian_averages = []
-interstate_and_geelong_averages = []
-victorian = []
-victorian_finals = []
-interstate_finals = []
-interstate = []
-clubs_averages = []
+finals_home_and_away_differentials = [] # (win differential, percentage differential, h&a ladder position of winner)
 
-just_inter_games_vic_home = []
-just_inter_games_inter_home = []
-just_inter_games_vic_finals = []
-just_inter_games_inter_finals = []
-interstate_premierships = []
-interstate_v_vic_grand_finals = []
-number_of_interstate_sides_per_year = []
-
-total_standard_games = 0
-total_finals = 0
-all_inter_haa_wins = 0
-all_inter_finals_wins = 0
-
-west_coast_finals_wins_per_year = []
-all_west_coast_finals_v_vic = 0
-WC_inter_finals_wins = 0
-
-wc_home_and_away = []
-all_wc_haa = 0
-all_wc_haa_wins = 0
-
-years = range(year_started, this_season + 1)
-
-r_hg_record_haa = [[0.0, 0]]
-g_hg_record_haa = [[0.0, 0]]
-wc_hg_record_haa = [[0.0, 0]]
-
-all_inter_win_percentage_over_time = []
-
-for year in years:
+for year in range(year_started, this_season + 1):
     text = getURL(universalURL.format(year))
     soup = BeautifulSoup(text, 'html.parser')
     tables = soup.findAll('table')
     last_season = this_season# int(tables[0].find('tr').find('a').text) - 1
     tables.reverse()
-    current_clubs = set(clubs.values())
     #create seasons for every club
     for i in current_clubs:
-        i._seasons[year] = Season(year)
-    x = 0
-    #do finals first
-    inter_inter_finals_wins = 0
-    inter_finals_games = 0
-    inter_inter_standard_wins = 0
-    inter_standard_games = 0
-    wc_finals_games = 0
-    wc_finals_wins = 0
-    wc_standard_games = 0
-    wc_standard_wins = 0
-    for i in tables[::2]:
-        links = i.findAll('a')
-        team1 = links[0].text
-        venue = links[1].text
-        team2 = links[2].text
-        rows = i.findAll('tr')
-        team1_score = int(rows[0].findAll('td')[2].text)
-        team2_score = int(rows[1].findAll('td')[2].text)
-        match = Match(team1, team2, team1_score, team2_score, venue)
-        if match._inter_match:
-            inter_finals_games += 1
-            if team1_score == team2_score:
-                inter_inter_finals_wins += 0.5
-            elif clubs[match._winner]._interstate:
-                inter_inter_finals_wins += 1
-            if clubs[team1] == WC or clubs[team2] == WC:
-                wc_finals_games += 1
-                if team1_score == team2_score:
-                    wc_finals_wins += 0.5
-                elif clubs[match._winner] == WC:
-                    wc_finals_wins += 1
-        clubs[team1]._seasons[year]._total_matches.append(match)
-        clubs[team1]._seasons[year]._finals_matches.append(match)
-        clubs[team2]._seasons[year]._total_matches.append(match)
-        clubs[team2]._seasons[year]._finals_matches.append(match)
-        if team1_score > team2_score:
-            clubs[team1]._seasons[year]._final_ladder_position = x + 1
-            clubs[team2]._seasons[year]._final_ladder_position = x + 2
-        elif team2_score > team1_score:
-            clubs[team1]._seasons[year]._final_ladder_position = x + 2
-            clubs[team2]._seasons[year]._final_ladder_position = x + 1
-        #If this is the gf and its not a draw and at least one of the teams is interstate
-        if team1_score != team2_score and (clubs[team1]._seasons[year]._final_ladder_position == 1 or clubs[team2]._seasons[year]._final_ladder_position == 1) and (clubs[team1]._interstate or clubs[team2]._interstate):
-            if (clubs[team1]._interstate and not clubs[team2]._interstate) or (clubs[team2]._interstate and not clubs[team1]._interstate):
-                interstate_v_vic_grand_finals.append(year)
-            if clubs[match._winner]._interstate:
-                interstate_premierships.append(year)
-        if tables[x + 2].text == "Finals":
-            break
-        x += 2
-    if wc_finals_games > 0:
-        west_coast_finals_wins_per_year.append(100 * wc_finals_wins / wc_finals_games)
-        all_west_coast_finals_v_vic += wc_finals_games
-        WC_inter_finals_wins += wc_finals_wins
-    rows = BeautifulSoup(getURL(universalURL.format(year)), features="lxml").findChildren('table')[-x - 4].findChildren('tr')[2:-1]
+        i._seasons[year] = Season(year) 
+    normal = -20
+    if year == 2010:
+        normal -= 2
+    elif year < 1994:
+        normal += 4
+    rows = BeautifulSoup(getURL(universalURL.format(year)), features="lxml").findChildren('table')[normal].findChildren('tr')[2:-1]
     for i in rows:
         collumns = i.findAll('td')
         club = collumns[1].text
         if club not in clubs.keys():
             break
         season = clubs[club]._seasons[year]
-        season._games_in_season = int(collumns[2].text) + len(season._finals_matches)
+        #season._games_in_season = int(collumns[2].text) + len(season._finals_matches)
         season._teams_in_season = len(rows)
-        season.n_home_and_away_wins = int(collumns[3].text)
-        season._n_total_wins = season.n_home_and_away_wins
-        score_for = 0
-        score_against = 0
-        for j in season._finals_matches:
-            if (j._home_team == club and j._margin > 0) or (j._away_team == club and j._margin < 0):
-                season._n_total_wins += 1
-            if j._home_team == club:
-                score_for += j._home_team_score
-                score_against += j._away_team_score
-            else:
-                score_for += j._away_team_score
-                score_against += j._home_team_score
-        if score_against != 0:
-            season._finals_percentage = score_for / score_against
-        #for j in range()
-        season._home_and_away_win_percentage = float(collumns[13].text[:3]) / (4 * float(collumns[2].text))#%of games played that were wins, this line will reject a 100% season as a 10% one
-        #if clubs[club]._interstate:
-        #    print(club, float(collumns[13].text[:3]), (4 * float(collumns[2].text)), season._home_and_away_win_percentage)
+        season.n_home_and_away_wins = float(collumns[3].text)
+        draws = str(collumns[4].text).strip()
+        if draws != '':
+            season.n_home_and_away_wins += float(collumns[4].text) / 2
+        '''
+            season._n_total_wins = season.n_home_and_away_wins
+            score_for = 0
+            score_against = 0
+            for j in season._finals_matches:
+                if (j._home_team == club and j._margin > 0) or (j._away_team == club and j._margin < 0):
+                    season._n_total_wins += 1
+                if j._home_team == club:
+                    score_for += j._home_team_score
+                    score_against += j._away_team_score
+                else:
+                    score_for += j._away_team_score
+                    score_against += j._home_team_score
+            if score_against != 0:
+                season._finals_percentage = score_for / score_against
+        '''
+        season._home_and_away_win_percentage = float(collumns[13].text[:3]) / (4 * float(collumns[2].text))#%of games played that were wins. Note! this line will reject a perfect 100% win season as a 10% one
         season._percentage = float(collumns[12].text)
         season._home_and_away_ladder_position = int(collumns[0].text)
+    '''#home and away games
     for i in tables[x + 5:]:
         links = i.findAll('a')
         if len(links) != 4 and len(links) != 3:
@@ -341,36 +212,6 @@ for year in years:
         team1_score = int(rows[0].findAll('td')[2].text)
         team2_score = int(rows[1].findAll('td')[2].text)
         match = Match(team1, team2, team1_score, team2_score, venue)
-        '''
-        desirables = ["West Coast", "Richmond", "Geelong"]
-        if (team1 in desirables or team2 in desirables):
-            actual_home_ground_team = None
-            if team1 in desirables and venue in clubs[team1]._home_grounds:
-                actual_home_ground_team = team1
-            elif team2 in desirables and venue in clubs[team2]._home_grounds:
-                actual_home_ground_team = team2
-            if actual_home_ground_team != None:
-                plus_value = 0.5 if (match._winner == "draw") else 1.0 if (match._winner == actual_home_ground_team) else 0.0
-                if actual_home_ground_team == desirables[2]:
-                    if len(g_hg_record_haa) <= year - year_started:
-                        g_hg_record_haa.append([plus_value, 1])
-                    else:
-                        g_hg_record_haa[year - year_started][0] += plus_value
-                        g_hg_record_haa[year - year_started][1] += 1
-                elif actual_home_ground_team == desirables[1]:
-                    if len(r_hg_record_haa) <= (year - year_started) - 5:
-                        r_hg_record_haa.append([plus_value, 1])
-                    else:
-                        if year > 1986:
-                            r_hg_record_haa[year - year_started - 5][0] += plus_value
-                            r_hg_record_haa[year - year_started - 5][1] += 1
-                elif actual_home_ground_team == desirables[0]:
-                    if len(wc_hg_record_haa) <= year - year_started - 5:
-                        wc_hg_record_haa.append([plus_value, 1])
-                    else:
-                        wc_hg_record_haa[year - year_started - 5][0] += plus_value
-                        wc_hg_record_haa[year - year_started - 5][1] += 1
-        '''
         if match._inter_match:
             inter_standard_games += 1
             if team1_score == team2_score:
@@ -387,68 +228,108 @@ for year in years:
         clubs[team1]._seasons[year]._home_and_away_matches.append(match)
         clubs[team2]._seasons[year]._total_matches.append(match)
         clubs[team2]._seasons[year]._home_and_away_matches.append(match)
-    if wc_standard_games > 0:
-        wc_home_and_away.append(100 * wc_standard_wins / wc_standard_games)
-        all_wc_haa += wc_standard_games
-        all_wc_haa_wins += wc_standard_wins
-    just_inter_games_inter_home.append(100 * inter_inter_standard_wins / inter_standard_games)
-    just_inter_games_vic_home.append(100 * (inter_standard_games - inter_inter_standard_wins) / inter_standard_games)
-    if inter_finals_games > 0:
-        just_inter_games_inter_finals.append(100 * inter_inter_finals_wins / inter_finals_games)
-        just_inter_games_vic_finals.append(100 * (inter_finals_games - inter_inter_finals_wins) / inter_finals_games)
-    else:
-        just_inter_games_inter_finals.append(None)
-        just_inter_games_vic_finals.append(None)
-    for i in current_clubs:
-        i._seasons[year]._total_matches.reverse()
-        i._seasons[year]._finals_matches.reverse()
-        i._seasons[year]._home_and_away_matches.reverse()
-    melboune_win_percentages = []
-    interstate_win_percentages = []
-    just_interstate = []
-    just_interstate_finals = []
-    just_victorian = []
-    just_victorian_finals = []
-    number_of_interstate_sides = 0
-    total_sides = 0
-    for i in current_clubs:
-        season = i._seasons[year]
-        if len(season._total_matches) > 0:
-            total_sides += 1
-            if i._interstate:
-                number_of_interstate_sides += 1
-                interstate_win_percentages.append(season._home_and_away_win_percentage)
+    '''
+    x = 0
+    for i in tables[::2]:
+        links = i.findAll('a')
+        team1 = links[0].text
+        venue = links[1].text
+        team2 = links[2].text
+        rows = i.findAll('tr')
+        team1_score = int(rows[0].findAll('td')[2].text)
+        team2_score = int(rows[1].findAll('td')[2].text)
+        match = Match(team1, team2, team1_score, team2_score, venue)
+        clubs[team1]._seasons[year]._total_matches.append(match)
+        clubs[team1]._seasons[year]._finals_matches.append(match)
+        clubs[team2]._seasons[year]._total_matches.append(match)
+        clubs[team2]._seasons[year]._finals_matches.append(match)
+        if team1_score > team2_score:
+            clubs[team1]._seasons[year]._final_ladder_position = x + 1
+            clubs[team2]._seasons[year]._final_ladder_position = x + 2
+        elif team2_score > team1_score:
+            clubs[team1]._seasons[year]._final_ladder_position = x + 2
+            clubs[team2]._seasons[year]._final_ladder_position = x + 1
+        if match._winner != "draw":
+            win_differential = clubs[match._winner]._seasons[year].n_home_and_away_wins - clubs[match._loser]._seasons[year].n_home_and_away_wins
+            percentage_differential = round(clubs[match._winner]._seasons[year]._percentage - clubs[match._loser]._seasons[year]._percentage, 2)
+            winner_ladder_position = clubs[match._winner]._seasons[year]._home_and_away_ladder_position
+            loser_ladder_position = clubs[match._loser]._seasons[year]._home_and_away_ladder_position
+            finals_home_and_away_differentials.append((win_differential, percentage_differential, winner_ladder_position, loser_ladder_position, x == 0))
+            if winner_ladder_position == 0:
+                print("wtf?", match._winner, match._margin)
+        #If this is the gf and its not a draw
+        if team1_score != team2_score and (clubs[team1]._seasons[year]._final_ladder_position == 1 or clubs[team2]._seasons[year]._final_ladder_position == 1) and (clubs[team1]._interstate or clubs[team2]._interstate):
+            pass
+        if tables[x + 2].text == "Finals":
+            break
+        x += 2
+
+    '''
+        total_sides = 0
+        for i in current_clubs:
+            season = i._seasons[year]
+            if len(season._total_matches) > 0:
+                total_sides += 1
                 if len(season._finals_matches) > 0:
-                    if i == Geelong:
-                        just_victorian_finals.append((season._n_total_wins - season.n_home_and_away_wins) / len(season._finals_matches))
-                    else:
-                        just_interstate_finals.append((season._n_total_wins - season.n_home_and_away_wins) / len(season._finals_matches))
-                if i != Geelong:
-                    just_interstate.append(season._home_and_away_win_percentage)
-                else:
-                    just_victorian.append(season._home_and_away_win_percentage)
-            else:
-                melboune_win_percentages.append(season._home_and_away_win_percentage)
-                just_victorian.append(season._home_and_away_win_percentage)
-                if len(season._finals_matches) > 0:
-                    just_victorian_finals.append((season._n_total_wins - season.n_home_and_away_wins) / len(season._finals_matches))
-    number_of_interstate_sides_per_year.append(100 * number_of_interstate_sides / total_sides)
-    melbournian_averages.append(100 * statistics.mean(melboune_win_percentages))
-    interstate_and_geelong_averages.append(100 * statistics.mean(interstate_win_percentages))
-    victorian.append(100 * statistics.mean(just_victorian))
-    interstate.append(100 * statistics.mean(just_interstate))
-    if len(just_interstate_finals) > 0:
-        interstate_finals.append(100 * statistics.mean(just_interstate_finals))
-    else:
-        interstate_finals.append(None)
-    victorian_finals.append(100 * statistics.mean(just_victorian_finals))
-    total_standard_games += inter_standard_games
-    total_finals += inter_finals_games
-    all_inter_finals_wins += inter_inter_finals_wins
-    all_inter_haa_wins += inter_inter_standard_wins
-    all_inter_win_percentage_over_time.append(100 * (all_inter_haa_wins) / (total_standard_games))#all_inter_finals_wins, total_finals
+                        pass
+    '''
     print(year)
 
+print(finals_home_and_away_differentials)
+print("# of finals since " + str(year_started) + ": ", len(finals_home_and_away_differentials))
+'''
+unique_wins_drequency = {}
+for i in finals_home_and_away_differentials:
+    unique_wins_commonality.get(i[0], 0) += 1
+'''
+import collections
+counter = collections.Counter([i[0] for i in finals_home_and_away_differentials])
+print("frequency of diff between h&a wins of finalists: ", counter)
+avg_ladder_diff = 0
+for i in counter.most_common():
+    avg_ladder_diff += i[0] * i[1]
+counter2 = collections.Counter([i[2] for i in finals_home_and_away_differentials])
+print("frequency of winning ladder positions:", counter2)
+counter3 = collections.Counter([round(round(i[1]) / 10) * 10 for i in finals_home_and_away_differentials])
+print("percentage diff rounded to nearest 10s:", counter3)
+sign = lambda x: (1, -1)[x < 0]
+counter4 = collections.Counter([math.floor(abs(i[1]) / 10) * 10 * sign(i[1]) for i in finals_home_and_away_differentials])
+print("lower bound percentage diffs:", counter4)
+counter5 = collections.Counter([i[0] for i in finals_home_and_away_differentials if i[4]])
+print("Diff wins of premiers:", counter5)
+prem_diff = 0
+for i in counter5.most_common():
+    prem_diff += i[0] * i[1]
+counter6 = collections.Counter([i[1] for i in finals_home_and_away_differentials if i[4]])
+print("percentage of grand finalists winners:", counter6)
+prem_perc = 0
+for i in counter6.most_common():
+    prem_perc += i[0] * i[1]
+print("avg wins (ignoring 0s):", prem_diff, "avg percentages (ignoring 0s):", prem_perc)
+counter7 = collections.Counter([i[3] - i[2] for i in finals_home_and_away_differentials])
+print("frequency of difference between winner and loser ladder pos:", counter7)
+avg_diff = 0
+for i in counter7.most_common():
+    avg_diff += i[0] * i[1]
+'''
+y = counter.most_common()
+x = len(x)
+for i in range(x):
+    for k in range(x):
+        if i != k and abs(y[i][0]) == abs(y[k][0]):
+            y[i][1] += y[k][1]
+            continue
+print("overall of winning ")
+'''
+counter8 = collections.Counter([(i[2], i[3]) for i in finals_home_and_away_differentials])
+print("Most common wins by ladder pos diff:", counter8)
+print("avg diff (ignoring 0s):", avg_diff)
+print("avg ladder diff:", statistics.mean([i[0] for i in finals_home_and_away_differentials]), avg_ladder_diff)
+print("Most common ladder diff:", statistics.mode([i[0] for i in finals_home_and_away_differentials]))
+print("avg percentage diff:", statistics.mean([i[1] for i in finals_home_and_away_differentials]))
+print("Most common winners ladder position:", statistics.mode([i[2] for i in finals_home_and_away_differentials]))
+
+quit()
 '''
 #MAIN:
 means = []
@@ -642,42 +523,10 @@ ax.plot(x, y5, 'g', label="Victorian finals. Total avg: " + str(round(statistics
 ax.plot(x, y6, 'y', label="Interstate finals. Total avg: " + str(round(statistics.mean(interstate_finals), 4)))#'''
 #ax.plot(x, y7, 'c', label="Victorian2. Total avg: " + str(round(statistics.mean(just_inter_games_vic_home), 4)))
 ax.step(range(year_started, last_season + 1), number_of_interstate_sides_per_year, color='grey', linestyle='dashed', label="Percentage of Comp that's interstate", where="post")
-
-ax.plot(x, y8, 'm', label="Interstate v Vic during home and away season. Total games: " + str(total_standard_games) + ". Total wins: " +  str(all_inter_haa_wins) + ". Win %: " + str(round(100 * all_inter_haa_wins / total_standard_games, 4)))
+ax.plot(x, y8, 'm', label="Interstate v Vic during home and away season. Total games: " + str(total_standard_games) + ". Total wins: " +  str(all_inter_haa_wins) + ". Win  %: " + str(round(100 * all_inter_haa_wins / total_standard_games, 4)))
 #ax.plot(x, y9, 'darkorange', label="Victorian finals2. Total avg: " + str(round(statistics.mean(just_inter_games_vic_finals), 4)))
-ax.plot(x, all_inter_win_percentage_over_time, 'orange', label="Cumulative home and away win % 1982-> the point you're looking at.")
 ax.plot(x[4:7], y10[4:7], 'lime')
 ax.plot(x[7:], y10[7:], 'lime', label="Interstate v Vic during finals. Total games: " + str(total_finals) + ". Total wins: " + str(all_inter_finals_wins) + ". Win %: " + str(round(100 * all_inter_finals_wins / total_finals, 4)))
-
-
-#Below is a comparison of home ground win % in h&a games between three teams not selected at random
-'''
-y_11 = [100 * i[0] / i[1] for i in r_hg_record_haa]
-y_12 = [100 * i[0] / i[1] for i in wc_hg_record_haa]
-y_13 = [100 * i[0] / i[1] for i in g_hg_record_haa]
-ax.plot(x[5:], y_11, 'yellow', label="Richmond")
-print(wc_hg_record_haa)
-ax.plot(x[5:], y_12, 'blue', label="WC")
-ax.plot(x, y_13, 'red', label="Geelong")
-print(statistics.mean(y_11), statistics.mean(y_12), statistics.mean(y_13))
-print(statistics.mean([i[0] for i in r_hg_record_haa]), statistics.mean([i[0] for i in wc_hg_record_haa]))
-'''
-
-"""
-h&a win record wc at the g 1986-2016: 42.555.
-Richmond's record: 46.989, ~ 4 and 1/2 percent better.
-Wc v Richmond at the g 1986-2016: 8-7 in WC favour. Current record 9-7 in Richmond's favour.
-Wc record at subiaco 14-3 in their favour. At perth stadium (optus) 1-0 in their favour.
-Total record (all venues) 26-19 in WC favour.
-"""
-
-"""
-Richmond same year h&a losses v finals opponents 2017-2020
-2017: Geelong by 14, GWS by 3, Adelaide by 76
-2018: n/a. Richmond beat Hawthorn by 13, Collingwood by 43 and 28. WC beat us by 47 points. Collingwood had 1 win v that years finalists pre finals.
-2019: Geelong by 67 points, GWS by 49 points
-2020: SK by 26, PA by 21. Richmond beat Lions by 41.
-"""
 
 #Uncomment below to see WC specifically
 '''ax.plot(x[5:], wc_home_and_away, 'aqua', label="WC H&A v victorians. Total games: " + str(all_wc_haa) + ". Total wins: " + str(all_wc_haa_wins) + ". Win %: " + str(round(100 * all_wc_haa_wins / all_wc_haa, 4)))
@@ -692,13 +541,13 @@ for i in x[5:]:
 ax.plot(west_coast_finals_years_v_vic, west_coast_finals_wins_per_year, 'g', label="WC finals v victorians. Total games: " + str(all_west_coast_finals_v_vic) + "Total wins: " + str(WC_inter_finals_wins) + ". Win %: " + str(round(100 * WC_inter_finals_wins / all_west_coast_finals_v_vic, 2)))#'''
 
 expected_interstate_premierships = sum(number_of_interstate_sides_per_year) / 100
-ax.scatter(interstate_v_vic_grand_finals, y_10_3, c='r', s=110.0, label="Interstate v Vic during grand finals. Total games: " + str(len(y_10_3)) + ". Total wins: " + str(len(list(set(interstate_v_vic_grand_finals) & set(interstate_premierships)))) + ". Win %: " + str(round(100 * len(list(set(interstate_v_vic_grand_finals) & set(interstate_premierships))) / len(y_10_3), 4)))
-ax.scatter(interstate_premierships, y_10_2, c='b', label="Interstate premierships.")
+ax.scatter(interstate_v_vic_grand_finals, y_10_3, c='r', s=110.0, label="Interstate v vic gfs. Total: " + str(len(y_10_3)) + ". Total gf appearances: " + str((len(list((set(interstate_v_vic_grand_finals) & set(interstate_premierships)) ^ set(interstate_premierships))) + len(list(set(interstate_v_vic_grand_finals) | set(interstate_premierships))))) + ". Expected: " + str(round(2 * expected_interstate_premierships, 2)))
+ax.scatter(interstate_premierships, y_10_2, c='b', label="Interstate premierships. Total: " + str(len(y_10_2)) + ". Expected (given # interstate teams in comp ea year): " + str(round(expected_interstate_premierships, 2)))
 
 plt.legend()
 plt.xlabel('Years')
-plt.ylabel('Percentage')
-plt.title('Win percentage of interstate teams in interstate v vic games ' + str(year_started) + "-" + str(last_season))
+plt.ylabel('Percentage')#Win Percentage')    #Ladder Position
+plt.title('Win percentage of interstate teams in interstate v vic games ' + str(year_started) + "-" + str(last_season))#Win percentage of vic & interstate sides of the last 30 years')
 
 
 """
@@ -727,9 +576,9 @@ I write this precedeeing the 2021 season. So as of now, interstate sides have
     2006, I would have seen the same home and away and finals win percentages, but 10 premierships to
     an expected 6.72!, interstaters went 10/12 gfs!!!!!!!! We'd all be here trying to figure out what
     it was about grand final day that made interstate sides so much more likely to win it than
-    victorians. If I'd analysed starting in "the AFl era (1990)", win percentage home and away would be
-    about the same, win percentage in finals would be up 2%, expected premierships down 1 (and gfs 2).
-    As it is, interstaters need 1 more to square up the ledger. The worst the interstaters have been in
+    victorians. If I'd analysed starting 1990, win percentage home and away would be about the
+    same, win percentage in finals would be up 4% and expected grand finals would be down 1. As it is,
+    interstaters need 1 more to square up the ledger. The worst the interstaters have been in
     premierships v expected premierships was 0:1.54 in 1991. In 1996 they were 2:2.97. In 2000 4:4.47.
     2011 10:8.63. 2017 11:11.29. I conclude this shows that interstate sides have been consistently
     winning exactly as many premierships as they would be expected to win, regardless of whether
@@ -753,40 +602,6 @@ I write this precedeeing the 2021 season. So as of now, interstate sides have
     fairly strong/correct/reasonable.
 """
 
-
-k = len(number_of_interstate_sides_per_year)
-expected_premierships_per_year = [1 / 12] * k
-z = 0
-premierships_per_year = []
-for i in x:
-    premierships_per_year.append(z)
-    if z == len(interstate_premierships):
-        continue
-    if i == interstate_premierships[z]:
-        z += 1
-for i in range(1, k):
-    expected_premierships_per_year[i] = expected_premierships_per_year[i - 1] + number_of_interstate_sides_per_year[i] / 100
-print(premierships_per_year)
-print(expected_premierships_per_year)
-premierships_compared_to_progression = [100 * premierships_per_year[i] / expected_premierships_per_year[i] for i in range(k)]
-premierships_compared_to_rounded_progression = [100 * premierships_per_year[i] / round(expected_premierships_per_year[i]) if round(expected_premierships_per_year[i]) != 0 else 1 for i in range(k)]
-'''diff = [(expected_premierships_per_year[i] - premierships_per_year[i]) ** 2 for i in range(k)]
-r_squared = 0'''
-#ax.step(x, premierships_compared_to_progression, color="blue", linestyle="dashed", label="Yearly Progression of Premierships / Expected Premierships")
-fig2 = plt.figure()
-ay = fig2.add_subplot(111)
-ay.set_xticks(range(1980, math.ceil(last_season / 5) * 5 + 1, 5))
-ay.set_yticks(range(14))
-ay.minorticks_on()
-ay.grid(which='minor')
-ay.grid(which='major', color="black")
-#ay.step(x, premierships_compared_to_rounded_progression, color="blue", linestyle="dashed", label="Yearly Progression of Premierships / Rounded Expected Premierships")
-ay.step(x, expected_premierships_per_year, color='yellow', label="Total expected premierships (" + str(round(expected_interstate_premierships, 2)) + "). Total expected grand final appearances: " + str(round(2 * expected_interstate_premierships, 2)), where='post')
-ay.step(x, premierships_per_year, color='b', label="Total premierships (" + str(len(y_10_2)) + "). Total grand final appearances: "+ str((len(list((set(interstate_v_vic_grand_finals) & set(interstate_premierships)) ^ set(interstate_premierships))) + len(list(set(interstate_v_vic_grand_finals) | set(interstate_premierships))))))
-
-plt.legend()
-plt.xlabel('Years')
-plt.ylabel('Premierships')
-plt.title('Progression of Interstate Premierships ' + str(year_started) + "-" + str(last_season))
+#ay = fig.add_subplot(111)
 
 plt.show()
