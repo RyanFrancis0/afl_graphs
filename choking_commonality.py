@@ -1,8 +1,11 @@
 #help("modules") #
 import urllib.request
-import matplotlib.pyplot as plt
 import math
 import statistics
+import collections
+import ast
+import os
+import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
 from bs4 import BeautifulSoup
@@ -30,9 +33,13 @@ as the best way to prove which is a better side. You would expect an upset to ha
 as they were "upset" in the home and away season.
 """
 
+year_started = 1990 #<- dont'change to 2000!!!!!! see far below
+script_directory = str(os.path.dirname(os.path.realpath(__file__)))
+file_name = "choking_commonality_savefile.txt"
+path_to_file = script_directory + '\\' + file_name
+"""#Uncomment this section to update info
 #constants
 universalURL = 'https://afltables.com/afl/seas/{}.html' 
-year_started = 1990#1990 #1897
 this_season = 2020#<-this is a manually used value, see last_season below which is autoupdated
 teams_in_comp = []
 finals_cutoff = []
@@ -64,7 +71,7 @@ class Season(object):
         self._finals_percentage = 0.0
         self._final_ladder_position = 0
     def get_form(self, round):
-        """Returns w/l record of 5 rounds immediately before selected one"""
+        '''Returns w/l record of 5 rounds immediately before selected one'''
         if round < 5:
             return [0, 0, 0, 0, 0]
         return []
@@ -73,7 +80,7 @@ class Season(object):
 
 class Club(object):
     def __init__(self, name, home_grounds, interstate):
-        """Club(str, str)"""
+        '''Club(str, str)'''
         self._name = name
         self._colour = colours[name]
         self._home_grounds = home_grounds
@@ -275,6 +282,17 @@ for year in range(year_started, this_season + 1):
     '''
     print(year)
 
+stored_info = {"key": finals_home_and_away_differentials} # {year:[tables, bs]}
+with open(path_to_file, "w") as f:
+    f.write(str(stored_info))
+#since 2000 there have been 189 finals, so len(finals) - 189 == index of 2000
+#"""
+#"""
+with open(path_to_file, "r") as f:
+    stored_info = ast.literal_eval(f.read())
+#MAIN:
+#"""#RETRIEVE DATA
+finals_home_and_away_differentials = stored_info["key"][len(stored_info["key"]) - 189:] #<-To start from 2000. Else starts 1990
 print(finals_home_and_away_differentials)
 print("# of finals since " + str(year_started) + ": ", len(finals_home_and_away_differentials))
 '''
@@ -282,9 +300,8 @@ unique_wins_drequency = {}
 for i in finals_home_and_away_differentials:
     unique_wins_commonality.get(i[0], 0) += 1
 '''
-import collections
 counter = collections.Counter([i[0] for i in finals_home_and_away_differentials])
-print("frequency of diff between h&a wins of finalists: ", counter)
+print("frequency of diff between h&a wins of finalists:", counter)
 avg_ladder_diff = 0
 for i in counter.most_common():
     avg_ladder_diff += i[0] * i[1]
@@ -302,6 +319,17 @@ for i in counter5.most_common():
     prem_diff += i[0] * i[1]
 counter6 = collections.Counter([i[1] for i in finals_home_and_away_differentials if i[4]])
 print("percentage of grand finalists winners:", counter6)
+counter8 = collections.Counter([i[2] for i in finals_home_and_away_differentials if i[4]])
+print("Ladder positions of premiers: ", counter8)
+counter9 = collections.Counter([i[3] for i in finals_home_and_away_differentials if i[4]])
+print("Ladder positions of grand final losers: ", counter9)
+ladder_pos = 0
+for i in counter8.most_common():
+    ladder_pos += i[0] * i[1]
+ladder_pos2 = 0
+for i in counter9.most_common():
+    ladder_pos2 += i[0] * i[1]
+print("avg premiers ladder pos:", ladder_pos, "avg gfls ladder pos:", ladder_pos2)
 prem_perc = 0
 for i in counter6.most_common():
     prem_perc += i[0] * i[1]
@@ -328,280 +356,3 @@ print("avg ladder diff:", statistics.mean([i[0] for i in finals_home_and_away_di
 print("Most common ladder diff:", statistics.mode([i[0] for i in finals_home_and_away_differentials]))
 print("avg percentage diff:", statistics.mean([i[1] for i in finals_home_and_away_differentials]))
 print("Most common winners ladder position:", statistics.mode([i[2] for i in finals_home_and_away_differentials]))
-
-quit()
-'''
-#MAIN:
-means = []
-modes = []
-medians = []
-count = 1
-for i in teams:
-    if i == "Fitzroy":
-        continue
-    year_began = teams[i][0][0]
-    start_diff = year_began - year_started
-    x = teams[i][0]
-    y = teams[i][1]
-    fig = plt.figure()
-    ax = fig.add_subplot(111)
-    ax.set_prop_cycle(color=running_colours)
-    ax.step([i for i in range(year_began, year_began + len(teams_in_comp[start_diff:]))], teams_in_comp[start_diff:], 'k--', label="Teams In Comp", where="post")
-    ax.plot(x, y, label="Position")#, where='mid'
-    ax.scatter(x, y)
-    ax.invert_yaxis()
-    avg_in_comp = []
-    team_stats = []
-    start_place = start_diff
-    skipped = 0
-    index = start_diff - 1
-    yindex = 0
-    for k in teams_in_comp[start_diff:]:
-        index += 1
-        skipped += 1
-        if x[yindex] == year_began + index - start_diff:
-            team_stats.append(y[yindex])
-            yindex += 1
-        else:
-            team_stats.append(y[yindex - 1])
-        if k == teams_in_comp[start_place] and index != len(teams_in_comp) - 1:
-            continue
-        avg_in_comp += skipped * [statistics.mean(team_stats)]
-        team_stats = []
-        start_place = index
-        skipped = 0
-    ax.step([i for i in range(year_began, year_began + len(teams_in_comp[start_diff:]))], avg_in_comp, 'g--', label="Average Ladder Position In Era", where="pre")
-    ax.step(x, [statistics.mean(y)] * len(x), 'y--', label="Average Ladder Position All Time")# don't have?
-    ax.step([i for i in range(year_began, year_began + len(finals_cutoff[start_diff:]))], finals_cutoff[start_diff:], 'r--', label="Finals Cutoff", where="post")
-    index = 0
-    addon = 0
-    years_played_finals = [year_began]
-    for k in range(start_diff, len(finals_cutoff)):
-        if year_started + k != teams[i][0][index]:
-            continue
-        if finals_cutoff[k] >= teams[i][1][index]:
-            years_played_finals.append(teams[i][0][index])
-        index += 1
-    if years_played_finals[-1] != last_season and len(years_played_finals) > 1:
-        years_played_finals.append(last_season)
-        addon += 1
-    if years_played_finals[0] == year_began:
-        years_played_finals.remove(year_began)
-    frock = np.diff(np.array(years_played_finals)).tolist()
-    years_between_finals = [i for i in frock if i > 1]
-    
-    finals_lengths = []
-    length = 1
-    for k in range(len(frock)):
-        if frock[k] == 1:
-            length += 1
-            if k == len(frock) - 1:
-                finals_lengths.append(length)
-        elif length != 0:
-            finals_lengths.append(length)
-            length = 1
-    if len(years_played_finals) == 0:
-        years_between_finals = [last_season - year_began]
-        finals_lengths = [-1]
-    if len(years_between_finals) == 0:
-        years_between_finals = [years_played_finals[0] - year_began]
-    
-    print(i) 
-    
-    print(frock)
-    print(years_played_finals)
-    print(years_between_finals)
-    print(finals_lengths)
-    ladder_moves = np.diff(np.array(y)).tolist()#map takes a function nad applies it to every item in a list
-    abs_ladder_moves = list(map(abs, ladder_moves))
-    print(sorted(abs_ladder_moves))
-    avg_ladder_move = statistics.mean(abs_ladder_moves)
-    means.append(avg_ladder_move)
-    modes.append(statistics.mode([round(k) for k in abs_ladder_moves]))
-    medians.append(statistics.median(abs_ladder_moves))
-    print(avg_ladder_move)
-    averages = []
-    for k in range(1, len(y)):
-        averages.append(round(statistics.mean(y[:k]), 2))
-    
-    """ 
-    maybe if avg of next 3 data points greater than everage of last 3 by certain amount then break
-    cos adhusting avg and the val abs(val must be > isnt working)
-    """
-    avg = 4
-    moving_average = [round(i, 2) for i in pd.DataFrame(y).rolling(avg).mean()[0].tolist()[avg - 1:]]
-    #print(moving_average)
-    moving_average_diff = np.diff(np.array(moving_average)).tolist()
-    print(moving_average_diff)
-    size = len(moving_average_diff)
-    idx_list = [idx + 1 for idx, val in
-            enumerate(moving_average_diff) if abs(val) > 2.5]  
-    res = []
-    if len(idx_list) != 0:
-        res = [moving_average_diff[i: j] for i, j in
-            zip([0] + idx_list, idx_list + 
-            ([size] if idx_list[-1] != size else []))]
-        total_before = avg - 1
-        for k in res:
-            x2 = [x[total_before], x[total_before + len(k)]]
-            y2 = [statistics.mean(y[total_before:total_before + len(k)]), statistics.mean(y[total_before:total_before + len(k)])]#[y[total_before], y[total_before + len(k)]]
-            ax.plot(x2, y2, 'm--')
-            total_before += len(k)
-        print(x[total_before])
-    
-    print(statistics.mean(moving_average))
-    #ax.plot(x[avg - 1:], moving_average)
-    #ax.scatter(x[avg - 1:], moving_average)
-    print(res)
-    """
-    for k in res:
-        ax.plot([j for j in range(x, len(k))])
-    """
-    """ ugh finals clusters is so much work
-    finals_clusters = []
-    last = years_played_finals[0]
-    record = [last]
-    for k in years_played_finals[1:]:
-        if k - last < 3:
-            record.append(k)
-            last = k
-            if k != 
-    """
-    ax.set_xticks([i for i in range(year_began - year_began % 10, (last_season + (last_season % 10) + 10), 10)])
-    ax.set_yticks([i for i in range(19)])
-    plt.ylabel('Ladder Position')    
-    plt.xlabel('Years')
-    plt.legend()
-    plt.title(
-        i +
-        ", times played finals: " + 
-        str(len(years_played_finals) - addon) + 
-        ", average sretch of finals droughts: " + 
-        str(round(statistics.mean(years_between_finals), 2)) + 
-        ", average stretch of successive finals: " + 
-        str(round(statistics.mean(finals_lengths), 2))
-     )
-    ax.minorticks_on()
-    ax.grid(which='minor')
-    ax.grid(which='major', color="black")
-    count += 1
-    #break
-print(means)
-print(modes)
-print(medians)
-print(statistics.mean(means))
-print(statistics.mean(modes))
-print(statistics.mean(medians))
-'''
-
-x = range(year_started, last_season + 1)
-y = melbournian_averages
-y2 = interstate_and_geelong_averages
-y3 = victorian
-y4 = interstate
-y5 = victorian_finals
-y6 = interstate_finals
-y7 = just_inter_games_vic_home
-y8 = just_inter_games_inter_home
-y9 = just_inter_games_vic_finals
-y10 = just_inter_games_inter_finals
-y_10_2 = [round(y10[i], 4) for i in range(len(y10)) if i + year_started in interstate_premierships]
-y_10_3 = [round(y10[i], 4) for i in range(len(y10)) if i + year_started in interstate_v_vic_grand_finals]
-
-fig = plt.figure()
-ax = fig.add_subplot(111)
-ax.set_xticks(range(1980, math.ceil(last_season / 5) * 5 + 1, 5))
-ax.set_yticks(range(0, 101, 5))
-ax.minorticks_on()
-ax.grid(which='minor')
-ax.grid(which='major', color="black")
-
-ax.plot(x, [50 for i in range(len(x))], 'k--')
-'''ax.plot(x, y3, 'r', label="Victorian. Total avg: " + str(round(statistics.mean(victorian), 4)))
-ax.plot(x, y4, 'b', label="Interstate. Total avg: " + str(round(statistics.mean(interstate), 4)))
-ax.plot(x, y5, 'g', label="Victorian finals. Total avg: " + str(round(statistics.mean(victorian_finals), 4)))
-ax.plot(x, y6, 'y', label="Interstate finals. Total avg: " + str(round(statistics.mean(interstate_finals), 4)))#'''
-#ax.plot(x, y7, 'c', label="Victorian2. Total avg: " + str(round(statistics.mean(just_inter_games_vic_home), 4)))
-ax.step(range(year_started, last_season + 1), number_of_interstate_sides_per_year, color='grey', linestyle='dashed', label="Percentage of Comp that's interstate", where="post")
-ax.plot(x, y8, 'm', label="Interstate v Vic during home and away season. Total games: " + str(total_standard_games) + ". Total wins: " +  str(all_inter_haa_wins) + ". Win  %: " + str(round(100 * all_inter_haa_wins / total_standard_games, 4)))
-#ax.plot(x, y9, 'darkorange', label="Victorian finals2. Total avg: " + str(round(statistics.mean(just_inter_games_vic_finals), 4)))
-ax.plot(x[4:7], y10[4:7], 'lime')
-ax.plot(x[7:], y10[7:], 'lime', label="Interstate v Vic during finals. Total games: " + str(total_finals) + ". Total wins: " + str(all_inter_finals_wins) + ". Win %: " + str(round(100 * all_inter_finals_wins / total_finals, 4)))
-
-#Uncomment below to see WC specifically
-'''ax.plot(x[5:], wc_home_and_away, 'aqua', label="WC H&A v victorians. Total games: " + str(all_wc_haa) + ". Total wins: " + str(all_wc_haa_wins) + ". Win %: " + str(round(100 * all_wc_haa_wins / all_wc_haa, 4)))
-west_coast_finals_years_v_vic = [] 
-#post 2020: 492 h&a games, 284.5 wins, 57.82%. 43 finals, 21.5 wins, 50%.
-for i in x[5:]:
-    if len(clubs["West Coast"]._seasons[i]._finals_matches) > 0:
-        for j in clubs["West Coast"]._seasons[i]._finals_matches:
-            if j._inter_match:
-                west_coast_finals_years_v_vic.append(i)
-                break
-ax.plot(west_coast_finals_years_v_vic, west_coast_finals_wins_per_year, 'g', label="WC finals v victorians. Total games: " + str(all_west_coast_finals_v_vic) + "Total wins: " + str(WC_inter_finals_wins) + ". Win %: " + str(round(100 * WC_inter_finals_wins / all_west_coast_finals_v_vic, 2)))#'''
-
-expected_interstate_premierships = sum(number_of_interstate_sides_per_year) / 100
-ax.scatter(interstate_v_vic_grand_finals, y_10_3, c='r', s=110.0, label="Interstate v vic gfs. Total: " + str(len(y_10_3)) + ". Total gf appearances: " + str((len(list((set(interstate_v_vic_grand_finals) & set(interstate_premierships)) ^ set(interstate_premierships))) + len(list(set(interstate_v_vic_grand_finals) | set(interstate_premierships))))) + ". Expected: " + str(round(2 * expected_interstate_premierships, 2)))
-ax.scatter(interstate_premierships, y_10_2, c='b', label="Interstate premierships. Total: " + str(len(y_10_2)) + ". Expected (given # interstate teams in comp ea year): " + str(round(expected_interstate_premierships, 2)))
-
-plt.legend()
-plt.xlabel('Years')
-plt.ylabel('Percentage')#Win Percentage')    #Ladder Position
-plt.title('Win percentage of interstate teams in interstate v vic games ' + str(year_started) + "-" + str(last_season))#Win percentage of vic & interstate sides of the last 30 years')
-
-
-"""
-Conclusions from this first graph is:
-I write this precedeeing the 2021 season. So as of now, interstate sides have
-1. Appeared in 21/31 grand finals.
-1.1. Not sure how many they should have appeared in and won, as that must be a funciton of
-    percentage of how many interstate teams were in the comp at every stage
-2. Won 12/21 of those appearances, for 12/31 premierships. This is despite the
-    fact that they represent just under half of all sides (8/18) since 2012, growing
-    sporadically from the 3/14 sides that were present in 1990.
-3. 18/21 grand finals have been against vic sides.
-4. Have won 9/18 of those grand finals. 
-5. Interestingly, won 7/9 (includes brisbane 3-peat) from first half of those grand finals and 
-    2/9 (includes hawks 3-peat) of all grand finals since.
-6. They win 1.6% less of their games against the vics during the home and away season. 
-7. THey win 0.65% less of their games against the vics during the finals series.
-8. Unfortunately, even though there is 30 years being considered, the trends of who is
-    better seem to be too long to make any guesses as to how long an 'ascendancy' will last.
-    One could hypothesise that the extent of an ascendancy will be matched at its conclusion, as
-    happenned when the 2002-2007 interstate ascendancy was followed by the 2008-2013 vic ascendancy.
-
-    I think in light of the closeness of the numbers we can safely say that these were just extended
-    streaks of flipping heads though.
-8.1. The significance of history depends on where you're standing in it. If I'd done this just after
-    2006, I would have seen the same home and away and finals win percentages, but 10 premierships to
-    an expected 6.72!, interstaters went 10/12 gfs!!!!!!!! We'd all be here trying to figure out what
-    it was about grand final day that made interstate sides so much more likely to win it than
-    victorians. If I'd analysed starting 1990, win percentage home and away would be about the
-    same, win percentage in finals would be up 4% and expected grand finals would be down 1. As it is,
-    interstaters need 1 more to square up the ledger. The worst the interstaters have been in
-    premierships v expected premierships was 0:1.54 in 1991. In 1996 they were 2:2.97. In 2000 4:4.47.
-    2011 10:8.63. 2017 11:11.29. I conclude this shows that interstate sides have been consistently
-    winning exactly as many premierships as they would be expected to win, regardless of whether
-    they're an interstate side or not. 
-
-    But we could just as easily launch from here into an extended period of interstate or victorian
-    dominance. I'll just have to keep faith that it'll all be squared up in the end.
-
-9. Interstate sides do lose more finals and home and away games then they are expected to though.
-    1.6% more h&a games. That's 1.6% * 8 * 22 * (% of 22 games played against vics, changes every year)
-    more losses / season for interstate teams.
-
-    151 vic v interstate finals. 1 (3? 5?) draw and 74 interstate wins, == 1 loss caused by an interstate
-    side so far. That's congruent with what you'd expect if there was 0 difference in finals between
-    interstate and vic teams.
-    
-    There's a lot less data on the finals than the home and away games of course, so it's more
-    malleable to change. But seeing as how it was 45-50 in all the above years
-    I checked (I think) except for '91 (17.5%! We'd all be sitting here trying to figure out what it
-    was about finals that made interstate sides so much more likely to lose them), I'd think it's
-    fairly strong/correct/reasonable.
-"""
-
-#ay = fig.add_subplot(111)
-
-plt.show()

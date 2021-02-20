@@ -1,10 +1,15 @@
-import urllib.request
-import matplotlib.pyplot as plt
-import numpy as np
+
 import statistics
 import ast
+import os
+import matplotlib.pyplot as plt
+import numpy as np
+import urllib.request
 from bs4 import BeautifulSoup
 
+script_directory = str(os.path.dirname(os.path.realpath(__file__)))
+file_name = "prelimsavefile.txt"
+path_to_file = script_directory + '\\' + file_name
 """
 README:
 If last_season (see constants below) isn't the last season in the AFL in which prelims were played OR you haven't
@@ -45,11 +50,11 @@ returns (str): f * 100, rouded to 2 decimal, with percent symbol on end
 def p(f):
     return str(round(100 * f, 2)) + '%'
 
-with open("prelimsavefile.txt", "r") as f:
+with open(path_to_file, "r") as f:
     clubs = ast.literal_eval(f.read())
 
 #MAIN:
-#""" RETRIEVE DATA
+""" RETRIEVE DATA
 clubs = {} # {"club":[[years total], [years won]]}
 for k in range(year_started, last_season + 1):
     text = getURL(universalURL.format(k))
@@ -122,7 +127,7 @@ for k in range(year_started, last_season + 1):
             clubs[team2][0].append(k)
     else:
         clubs[team2] = [[k], [k]]
-with open("prelimsavefile.txt", "w") as f:
+with open(path_to_file, "w") as f:
     f.write(str(clubs))
 #"""
 
