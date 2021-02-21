@@ -119,6 +119,7 @@ class Season(object):
         self._home_and_away_ladder_position = 0
         self._finals_percentage = 0.0
         self._final_ladder_position = 0
+
     def get_form(self, round):
         """Returns w/l record of 5 rounds immediately before selected one"""
         if round < 5:
@@ -136,6 +137,8 @@ class Club(object):
         self._interstate = interstate
         self._seasons = {}
         self._year_entered_comp = year_entered_comp
+        self._expected_premierships = []
+        self._premierships = []
     #def get_season(self, year):
     #    return self._seasons[year - 2000]
 victoria = ["M.C.G.", "Princes Park", "Docklands", "Kardinia Park"]
@@ -231,6 +234,7 @@ all_wc_haa = 0
 all_wc_haa_wins = 0
 
 years = range(year_started, this_season + 1)
+current_clubs = set(clubs.values())
 
 r_hg_record_haa = [[0.0, 0]]
 g_hg_record_haa = [[0.0, 0]]
@@ -265,7 +269,6 @@ with open(path_to_file, "w") as f:
 
 for year in years:
     last_season = this_season# int(tables[0].find('tr').find('a').text) - 1
-    current_clubs = set(clubs.values())
     for i in current_clubs:
         i._seasons[year] = Season(year)
     text = stored_info[year] #getURL(universalURL.format(year))
@@ -316,11 +319,22 @@ for year in years:
             clubs[team1]._seasons[year]._final_ladder_position = x + 2
             clubs[team2]._seasons[year]._final_ladder_position = x + 1
         #If this is the gf and its not a draw and at least one of the teams is interstate
-        if team1_score != team2_score and (clubs[team1]._seasons[year]._final_ladder_position == 1 or clubs[team2]._seasons[year]._final_ladder_position == 1) and (clubs[team1]._interstate or clubs[team2]._interstate):
-            if (clubs[team1]._interstate and not clubs[team2]._interstate) or (clubs[team2]._interstate and not clubs[team1]._interstate):
-                interstate_v_vic_grand_finals.append(year)
-            if clubs[match._winner]._interstate:
-                interstate_premierships.append(year)
+        if team1_score != team2_score and (clubs[team1]._seasons[year]._final_ladder_position == 1 or clubs[team2]._seasons[year]._final_ladder_position == 1):
+            if (clubs[team1]._interstate or clubs[team2]._interstate):
+                if (clubs[team1]._interstate and not clubs[team2]._interstate) or (clubs[team2]._interstate and not clubs[team1]._interstate):
+                    interstate_v_vic_grand_finals.append(year)
+                if clubs[match._winner]._interstate:
+                    interstate_premierships.append(year)
+                    if len(clubs[match._winner]._premierships) == 0:
+                        clubs[match._winner]._premierships.append(1)
+                    else:
+                        clubs[match._winner]._premierships.append(clubs[match._winner]._premierships[-1] + 1)
+            for i in current_clubs:
+                if i._interstate and year >= i._year_entered_comp and i != clubs[match._winner]:
+                    if len(i._premierships) == 0:
+                        i._premierships.append(0)
+                    else:
+                        i._premierships.append(i._premierships[-1])
         if tables[x + 2].text == "Finals":
             break
         x += 2
@@ -453,6 +467,10 @@ for year in years:
         season = i._seasons[year]
         if len(season._total_matches) > 0:
             total_sides += 1
+            if len(i._expected_premierships) == 0:
+                i._expected_premierships.append(1 / season._teams_in_season)
+            else:
+                i._expected_premierships.append(1 / season._teams_in_season + i._expected_premierships[-1])
             if i._interstate:
                 number_of_interstate_sides += 1
                 interstate_win_percentages.append(season._home_and_away_win_percentage)
@@ -639,7 +657,7 @@ ax4.tick_params(pad=24.0)
 ax4.set_xticklabels(finals_qualifiers_per_year)
 '''
 
-plt.title('Win percentage of interstate teams in interstate v vic games ' + str(year_started) + "-" + str(last_season))
+plt.title('Interstate v vic in home and away games ' + str(year_started) + "-" + str(last_season))
 
 
 fig3 = plt.figure()
@@ -660,7 +678,7 @@ az.scatter(interstate_premierships, y_12_2, c='blue', label="Interstate premiers
 plt.legend()
 plt.xlabel('Years')
 #plt.ylabel('Games')
-plt.title('Interstate finals campaigns ' + str(year_started) + "-" + str(last_season))
+plt.title('Interstate v vic in finals games ' + str(year_started) + "-" + str(last_season))
 number_of_interstate_sides
 
 fig4 = plt.figure()
@@ -752,6 +770,8 @@ plt.legend()
 plt.xlabel('Years')
 plt.title('Quality of interstate finals series qualifications ' + str(year_started) + "-" + str(last_season))
 
+
+
 """
 Conclusions from this first graph is:
 I write this precedeeing the 2021 season. So as of now, interstate sides have
@@ -838,9 +858,16 @@ ay.grid(which='major', color="black")
 
 expected_interstate_premierships = sum(number_of_interstate_sides_per_year) / 100
 
-ay.step(x, expected_premierships_per_year, color='yellow', label="Total expected premierships (" + str(round(expected_interstate_premierships, 2)) + "). Total expected grand final appearances: " + str(round(2 * expected_interstate_premierships, 2)), where='post')
-ay.step(x, premierships_per_year, color='b', label="Total premierships (" + str(len(y_10_2)) + "). Total grand final appearances: "+ str((len(list((set(interstate_v_vic_grand_finals) & set(interstate_premierships)) ^ set(interstate_premierships))) + len(list(set(interstate_v_vic_grand_finals) | set(interstate_premierships))))))
-
+#crimson
+ay.plot(x, expected_premierships_per_year, color='b', label="Total expected premierships / (" + str(round(expected_interstate_premierships, 2)) + "). Total expected grand final appearances: " + str(round(2 * expected_interstate_premierships, 2)))#, where='post'
+ay.step(x, premierships_per_year, color='b', label="Total premierships _| (" + str(len(y_10_2)) + "). Total grand final appearances: "+ str((len(list((set(interstate_v_vic_grand_finals) & set(interstate_premierships)) ^ set(interstate_premierships))) + len(list(set(interstate_v_vic_grand_finals) | set(interstate_premierships))))))
+colours = {"Gold Coast":"yellow", "Richmond":"yellow", "North Melbourne":"royalblue", "Essendon":"red", "Carlton":"navy", "Collingwood":"black", "Melbourne":"lime", "Hawthorn":"brown", "Fitzroy":"grey", "St Kilda":"crimson", "Western Bulldogs":"green", "Fremantle":"purple", "Greater Western Sydney":"orange", "Brisbane Lions": "orangered", "Port Adelaide":"cyan", "West Coast":"goldenrod", "Sydney":"deeppink", "Adelaide":"royalblue"} #ugh takes so long to write out
+#ab.plot(x, finals_cutoff, color='k', label="Number of sides allowed to play finals.")
+for i in current_clubs:
+    if i._interstate:
+        ay.set_prop_cycle(color=colours[i._name])
+        ay.plot(x[x.index(i._year_entered_comp):], i._expected_premierships, label="Expected / and actual _| premierships for " + i._name + " (Expected: " + str(round(i._expected_premierships[-1], 2)) + ", Actual: " + str(i._premierships[-1]) + ')')#, where='post'
+        ay.step(x[x.index(i._year_entered_comp):], i._premierships, where='post')
 plt.legend()
 plt.xlabel('Years')
 plt.ylabel('Premierships')
