@@ -88,7 +88,7 @@ script_directory = str(os.path.dirname(os.path.realpath(__file__)))
 file_name = "interstate_savefile.txt"
 path_to_file = script_directory + '\\' + file_name
 universalURL = 'https://afltables.com/afl/seas/{}.html' 
-year_started = 1982#1990 #1897 #1982
+year_started = 1982#1982#1990 #1897 #1982
 this_season = 2020#<-this is a manually used value, see last_season below which is autoupdated
 teams_in_comp = []
 finals_cutoff = []
@@ -144,25 +144,26 @@ class Club(object):
 victoria = ["M.C.G.", "Princes Park", "Docklands", "Kardinia Park"]
 
 # == multiple home grounds in this stretch actually
-Richmond = Club("Richmond", ["M.C.G."], False)#["Waverly", "Docklands", "Football Park", "Subiaco"]
-WC = Club("West Coast", ["Subiaco", "W.A.C.A", "Perth Stadium"], True, 1987)#["M.C.G."]
-GC = Club("Gold Coast", ["Carrara"], True, 2011)
-Brisbane = Club("Brisbane Lions", ["Gabba"], True, 1987)#1997?
-STK = Club("St Kilda", ["Docklands"], False)
-Fremantle = Club("Fremantle", ["Subiaco", "W.A.C.A", "Perth Statdium"], True, 1995)#
-Collingwood = Club("Collingwood", ["M.C.G."], False)
-Melbourne = Club("Melbourne", ["M.C.G."], False)
-Carlton = Club("Carlton", ["Princes Park", "M.C.G."], False)#
-Essendon = Club("Essendon", ["M.C.G."], False)#
-Hawthorn = Club("Hawthorn", ["M.C.G."], False)
-Adelaide = Club("Adelaide", ["Football Park", "Adelaide Oval"], True, 1991)#
-PA = Club("Port Adelaide", ["Football Park", "Adelaide Oval"], True, 1997)#
-Sydney = Club("Sydney", ["S.C.G."], True, 1982)
-GWS = Club("Greater Western Sydney", ["Sydney Showground"], True, 2012)
-NM = Club("North Melbourne", ["Docklands"], False)
-WB = Club("Western Bulldogs", ["Docklands"], False)
-Geelong = Club("Geelong", ["Kardinia Park"], False)
-Fitzroy = Club("Fitzroy", ["M.C.G."], False)
+
+Richmond = Club("Richmond", ["M.C.G."], False, 1982)#False
+WC = Club("West Coast", ["Subiaco", "W.A.C.A", "Perth Stadium"], True, 1987)#True
+GC = Club("Gold Coast", ["Carrara"], True, 2011)#True
+Brisbane = Club("Brisbane Lions", ["Gabba"], True, 1987)#1997?#True
+STK = Club("St Kilda", ["Docklands"], False, 1982)#False
+Fremantle = Club("Fremantle", ["Subiaco", "W.A.C.A", "Perth Statdium"], False, 1995)#False
+Collingwood = Club("Collingwood", ["M.C.G."], False, 1982)#False
+Melbourne = Club("Melbourne", ["M.C.G."], False, 1982)#False
+Carlton = Club("Carlton", ["Princes Park", "M.C.G."], False, 1982)#False
+Essendon = Club("Essendon", ["M.C.G."], False, 1982)#False
+Hawthorn = Club("Hawthorn", ["M.C.G."], False, 1982)#False
+Adelaide = Club("Adelaide", ["Football Park", "Adelaide Oval"], True, 1991)#True
+PA = Club("Port Adelaide", ["Football Park", "Adelaide Oval"], True, 1997)#True
+Sydney = Club("Sydney", ["S.C.G."], True, 1982)#True#1982
+GWS = Club("Greater Western Sydney", ["Sydney Showground"], True, 2012)#True
+NM = Club("North Melbourne", ["Docklands"], False, 1982)#False
+WB = Club("Western Bulldogs", ["Docklands"], False, 1982)#False
+Geelong = Club("Geelong", ["Kardinia Park"], False, 1982)#False
+Fitzroy = Club("Fitzroy", ["M.C.G."], False, 1982)#False
 
 clubs = {
     "Richmond": Richmond,
@@ -235,6 +236,7 @@ all_wc_haa_wins = 0
 
 years = range(year_started, this_season + 1)
 current_clubs = set(clubs.values())
+interstate_clubs = [i for i in current_clubs if i._interstate]
 
 r_hg_record_haa = [[0.0, 0]]
 g_hg_record_haa = [[0.0, 0]]
@@ -250,6 +252,7 @@ expected_finals_qualifiers_per_year = []
 n_i_s_p_y = []
 
 finalists_ladder_positions = [[] for i in years]
+non_finalists_ladder_positions = [[] for i in years]
 
 all_inter_home_games = []
 
@@ -313,13 +316,17 @@ for year in years:
         clubs[team2]._seasons[year]._total_matches.append(match)
         clubs[team2]._seasons[year]._finals_matches.append(match)
         if team1_score > team2_score:
-            clubs[team1]._seasons[year]._final_ladder_position = x + 1
-            clubs[team2]._seasons[year]._final_ladder_position = x + 2
+            if clubs[team1]._seasons[year]._final_ladder_position == 0:
+                clubs[team1]._seasons[year]._final_ladder_position = x + 1
+            if clubs[team2]._seasons[year]._final_ladder_position == 0:
+                clubs[team2]._seasons[year]._final_ladder_position = x + 2
         elif team2_score > team1_score:
-            clubs[team1]._seasons[year]._final_ladder_position = x + 2
-            clubs[team2]._seasons[year]._final_ladder_position = x + 1
+            if clubs[team1]._seasons[year]._final_ladder_position == 0:
+                clubs[team1]._seasons[year]._final_ladder_position = x + 2
+            if clubs[team2]._seasons[year]._final_ladder_position == 0:
+                clubs[team2]._seasons[year]._final_ladder_position = x + 1
         #If this is the gf and its not a draw and at least one of the teams is interstate
-        if team1_score != team2_score and (clubs[team1]._seasons[year]._final_ladder_position == 1 or clubs[team2]._seasons[year]._final_ladder_position == 1):
+        if team1_score != team2_score and x == 0:# and year not in interstate_v_vic_grand_finals and (year not in interstate_premierships or not clubs[match._winner]._interstate):
             if (clubs[team1]._interstate or clubs[team2]._interstate):
                 if (clubs[team1]._interstate and not clubs[team2]._interstate) or (clubs[team2]._interstate and not clubs[team1]._interstate):
                     interstate_v_vic_grand_finals.append(year)
@@ -389,6 +396,16 @@ for year in years:
         team1_score = int(rows[0].findAll('td')[2].text)
         team2_score = int(rows[1].findAll('td')[2].text)
         match = Match(team1, team2, team1_score, team2_score, venue)
+        if year >= 1983 and match._margin != 0:
+            #print(year, clubs[team1]._seasons[year - 1]._final_ladder_position, match._winner, team2)
+            if clubs[team1]._seasons[year]._final_ladder_position == 1 and match._winner == team2:
+                print(year, team1, "lost to " + team2 + ", who finished", clubs[team2]._seasons[year]._home_and_away_ladder_position, "that year, by", abs(match._margin), "points at the", venue)
+                if abs(match._margin) >=45: #clubs[team2]._seasons[year]._home_and_away_ladder_position >= season._teams_in_season - 2:
+                    print("//////////////////////////////", season._teams_in_season)
+            elif clubs[team2]._seasons[year]._final_ladder_position == 1 and match._winner == team1:
+                print(year, team2, "lost to " + team1 + ", who finished", clubs[team1]._seasons[year]._home_and_away_ladder_position, "that year, by", abs(match._margin), "points at the", venue)
+                if abs(match._margin) >=45: #clubs[team1]._seasons[year]._home_and_away_ladder_position >= season._teams_in_season - 2:
+                    print("//////////////////////////////", season._teams_in_season)
         '''
         desirables = ["West Coast", "Richmond", "Geelong"]
         if (team1 in desirables or team2 in desirables):
@@ -481,6 +498,8 @@ for year in years:
                         just_victorian_finals.append((season._n_total_wins - season.n_home_and_away_wins) / len(season._finals_matches))
                     else:
                         just_interstate_finals.append((season._n_total_wins - season.n_home_and_away_wins) / len(season._finals_matches))
+                else:
+                    non_finalists_ladder_positions[years.index(year)].append(season._home_and_away_ladder_position)
                 if i != Geelong:
                     just_interstate.append(season._home_and_away_win_percentage)
                 else:
@@ -490,7 +509,11 @@ for year in years:
                 just_victorian.append(season._home_and_away_win_percentage)
                 if len(season._finals_matches) > 0:
                     just_victorian_finals.append((season._n_total_wins - season.n_home_and_away_wins) / len(season._finals_matches))
-    number_of_interstate_sides_per_year.append(100 * number_of_interstate_sides / total_sides)
+    ignore_extra_team = 0
+    #if year > 1986:
+    #ignore_extra_team = 1
+    #if year != 1992 and year != 1994 and year != 2006 and year != 2018:
+    number_of_interstate_sides_per_year.append(100 * (number_of_interstate_sides) / (total_sides - ignore_extra_team))
     n_i_s_p_y.append(number_of_interstate_sides)
     expected_finals_qualifiers_per_year.append((number_of_interstate_sides_per_year[-1] / 100) * finals_cutoff[-1])
     melbournian_averages.append(100 * statistics.mean(melboune_win_percentages))
@@ -501,7 +524,7 @@ for year in years:
         interstate_finals.append(100 * statistics.mean(just_interstate_finals))
     else:
         interstate_finals.append(None)
-    victorian_finals.append(100 * statistics.mean(just_victorian_finals))
+    #victorian_finals.append(100 * statistics.mean(just_victorian_finals))
     total_standard_games += inter_standard_games
     total_finals += inter_finals_games
     all_inter_finals_wins += inter_inter_finals_wins
@@ -525,11 +548,12 @@ y7 = just_inter_games_vic_home
 y8 = just_inter_games_inter_home
 y9 = just_inter_games_vic_finals
 y10 = just_inter_games_inter_finals
-y_10_2 = [round(y10[i], 4) for i in range(len(y10)) if i + year_started in interstate_premierships]
+y_10_2 = [round(y10[i], 4) if y10[i] != None else 0.0 for i in range(len(y10)) if i + year_started in interstate_premierships]
 y_10_3 = [round(y10[i], 4) for i in range(len(y10)) if i + year_started in interstate_v_vic_grand_finals]
 y_11 = [100 * finals_qualifiers_per_year[i] / finals_cutoff[i] for i in range(len(x))]
 y_12 = [(just_inter_games_inter_finals[i] / 100) * finals_per_year[i] if just_inter_games_inter_finals[i] != None else None for i in range(len(x))]
-y_12_2 = [round(y_12[i], 4) for i in range(len(y_12)) if i + year_started in interstate_premierships]
+
+y_12_2 = [round(y_12[i], 4) if y_12[i] != None else 0.0 for i in range(len(y_12)) if i + year_started in interstate_premierships]
 y_12_3 = [round(y_12[i], 4) for i in range(len(y_12)) if i + year_started in interstate_v_vic_grand_finals]
 y_13 = [i / 2 for i in haagames_per_year]
 y_14 = [(y8[i] / 100) * haagames_per_year[i] for i in range(len(x))]
@@ -564,6 +588,7 @@ moving_average = [round(i, 2) for i in pd.DataFrame(y_14).rolling(avg).mean()[0]
 start = math.floor((avg - 1) / 2)
 stop = len(x) - start
 ax.plot(x[start:stop], moving_average, color='brown', label="Rolling " + str(avg) + " year win avg")#
+ax.plot(x, all_inter_win_percentage_over_time, 'crimson', label="Cumulative home and away win % 1982-> the point you're looking at.")
 moving_average_diff = [round(i, 2) for i in np.diff(np.array(moving_average)).tolist()]
 print(moving_average)
 print(moving_average_diff)
@@ -576,6 +601,7 @@ while abs(k * avg_game_diff) < n_i_s_p_y[-1]:
 result_type = "loss(es)" if avg_game_diff < 0 else "win(s)"
 ax.plot(x, y_13, color='orange', label="50%. Avg game diff to wins: " + str(avg_game_diff) + "/year. ~" + str(round(abs(k * avg_game_diff) / n_i_s_p_y[-1], 2)) + " extra h&a " + result_type + " / interstate club every " + str(k) + " year(s).")
 #KEEP BELOW !                !                          !                                !                        !
+print(y8)
 """
 ax.plot(x, y8, 'm', label="Interstate v Vic during home and away season. Total games: " + str(total_standard_games) + ". Total wins: " +  str(all_inter_haa_wins) + ". Win %: " + str(round(100 * all_inter_haa_wins / total_standard_games, 4)))
 #ax.plot(x, y9, 'darkorange', label="Victorian finals2. Total avg: " + str(round(statistics.mean(just_inter_games_vic_finals), 4)))
@@ -689,6 +715,7 @@ aa.grid(which='minor')
 aa.grid(which='major', color="black")
 
 aa.plot(x, finals_cutoff, color='k', label="Number of sides allowed to play finals.")
+aa.plot(x, n_i_s_p_y, color='dimgrey', label="Number of interstate sides.")
 aa.plot(x, expected_finals_qualifiers_per_year, color='fuchsia', label="Number of interstate sides expected to be playing finals. Total expected qualifications: " + str(round(sum(expected_finals_qualifiers_per_year), 3)))#brown
 aa.plot(x, finals_qualifiers_per_year, color='purple', label="Number of interstate sides that played finals. Total qualifications: " + str(sum(finals_qualifiers_per_year)))
 
@@ -712,12 +739,11 @@ plt.title('Quantity of interstate finals series qualifications ' + str(year_star
 fig5 = plt.figure()
 ab = fig5.add_subplot(111)
 ab.set_xticks(range(1980, math.ceil(last_season / 5) * 5 + 1, 5))
-ab.set_yticks(range(16))
 ab.minorticks_on()
 ab.grid(which='minor')
 ab.grid(which='major', color="black")
 
-actual_positions_progression = {1: [0], 2: [0], 3: [0], 4: [0], 5: [0], 6: [0], 7: [0], 8: [0]}
+actual_positions_progression = {1: [0], 2: [0], 3: [0], 4: [0], 5: [0], 6: [0], 7: [0], 8: [0], 9:[0], 10:[0], 11:[0], 12:[0], 13:[0], 14:[0], 15:[0], 16:[0], 17:[0], 18:[0]}
 
 for i in range(len(x)):
     if len(finalists_ladder_positions[i]) > 0 and finalists_ladder_positions[i][0] != -1:
@@ -730,28 +756,64 @@ for i in range(len(x)):
 #aa.scatter(x2, y_15, c='deepskyblue', label="Ladder positions in year. Avg/year: " + str(round(statistics.mean([statistics.mean(i) for i in finalists_ladder_positions if len(i) > 0]), 3)))
 
 total_positions = dict(collections.Counter(y_15))
-total_expected_positions = {1: [0], 2: [0], 3: [0], 4: [0], 5: [0], 6: [0], 7: [0], 8: [0]}
+total_expected_positions = {1: [0], 2: [0], 3: [0], 4: [0], 5: [0], 6: [0], 7: [0], 8: [0], 9:[0], 10:[0], 11:[0], 12:[0], 13:[0], 14:[0], 15:[0], 16:[0], 17:[0], 18:[0]}
 #total_expected_positions_per_year = [[] for i in range(8)] [[[]#for j in range(finals_cutoff[i])] for i in range(len(x))]
 
+non_finalists_positions = {}
+adding_it_all_up = []
+for i in non_finalists_ladder_positions:
+    adding_it_all_up += i 
+total_non_finalists_positions = dict(collections.Counter(adding_it_all_up))
+print(non_finalists_ladder_positions)
+"""
 for i in range(len(x)):
-    for j in range(1, 9):
+    for i in interstate_clubs:
+        for j in range(9, 1 + round(1 / (number_of_interstate_sides_per_year[i] / 100 / n_i_s_p_y[i])))
+            to_add = 1 if j in finalists_ladder_positions[i] else 0
+            non_finalists_positions[j].append(non_finalists_positions[-1] + non_finalists_ladder_positions[i])
+"""
+#"""UNCOMMENT THIS ONE!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+for i in range(len(x)):
+    #print(Sydney._seasons[x[i]]._teams_in_season)
+    for j in range(1, Sydney._seasons[x[i]]._teams_in_season + 1):
+        if j == 19:
+            print(19)
+            continue
+        #if j > finals_cutoff[i]:
         if j <= finals_cutoff[i]:
             total_expected_positions[j].append(total_expected_positions[j][-1] + number_of_interstate_sides_per_year[i] / 100)
         else:
             total_expected_positions[j].append(total_expected_positions[j][-1])
         #total_expected_positions_per_year[]
-for i in range(1, 9):
+for i in range(1, 9):#19
     total_expected_positions[i] = total_expected_positions[i][1:]
-    actual_positions_progression[i] = actual_positions_progression[i][1:]
+    if i <= 8:
+        actual_positions_progression[i] = actual_positions_progression[i][1:]
 
-differences_per_position = [actual_positions_progression[i][-1] - total_expected_positions[i][-1] for i in range(1, 9)]
+for i in total_non_finalists_positions.keys():
+    actual_positions_progression[i][-1] += total_non_finalists_positions[i]
 
-print(total_positions)
+#differences_per_position = [actual_positions_progression[i][-1] - total_expected_positions[i][-1] for i in range(1, 9)]
+#actual_positions_2 = [round(total_expected_positions[i][-1], 3) for i in range(1, 19)]
+total_non_finalists_positions[6] = 0
+#differences_2 = [(i, round(actual_positions_progression[i][-1] - total_expected_positions[i][-1], 3)) for i in range(1, 19)]
+print(total_non_finalists_positions)
+printable_total_expected_positions = [round(total_expected_positions[i][-1], 3) for i in range(6, 19)]
+print(printable_total_expected_positions)
+differences_3 = [(i, round(total_non_finalists_positions[i] - total_expected_positions[i][-1], 3)) for i in range(6, 19)]
+print(differences_3, sum([i[1] for i in differences_3]), sum([i[1] for i in differences_3][:4]))
+#print(actual_positions_2)
+#print(differences_2, sum([i[1] for i in differences_2][:]))
+
+'''
 print(total_expected_positions)
+print(total_positions)
 print(actual_positions_progression)
 print(differences_per_position)
 print(sum(differences_per_position))
+'''
 
+ab.set_yticks(range(max([math.ceil(i[-1]) for i in total_expected_positions.values()]) + 1))
 colours = {5:"yellow", 3:"royalblue", 2:"red", 7:"navy", 1:"black", 4:"lime", "Hawthorn":"brown", "Fitzroy":"grey", "St Kilda":"crimson", "Western Bulldogs":"green", 6:"purple", 8:"orange", "Brisbane Lions": "orangered", -1:"cyan", -2:"darkgoldenrod", -3:"deeppink", "Adelaide":"royalblue"} #ugh takes so long to write out
 #ab.plot(x, finals_cutoff, color='k', label="Number of sides allowed to play finals.")
 ab.set_prop_cycle(color=colours[-1])
@@ -761,7 +823,6 @@ ab.plot(x, total_expected_positions[6], label="Number of times expected to place
 ab.set_prop_cycle(color=colours[-3])
 ab.plot(x, total_expected_positions[7], label="Number of times expected to place in ladder positions 7 & 8. Total: " + str(round(total_expected_positions[7][-1], 3)) + "ea")
 
-
 for i in range(8, 0, -1):
     ab.set_prop_cycle(color=colours[i])
     ab.plot(x, actual_positions_progression[i], label="Progression of times placed in ladder position " + str(i) + ". Total: " + str(actual_positions_progression[i][-1]))#, where='post'
@@ -769,7 +830,7 @@ for i in range(8, 0, -1):
 plt.legend()
 plt.xlabel('Years')
 plt.title('Quality of interstate finals series qualifications ' + str(year_started) + "-" + str(last_season))
-
+#"""
 
 
 """
@@ -833,12 +894,12 @@ expected_premierships_per_year = [1 / 12] * k
 z = 0
 premierships_per_year = []
 for i in x:
-    premierships_per_year.append(z)
-    if z == len(interstate_premierships):
-        continue
-    if i == interstate_premierships[z]:
+    if z < len(interstate_premierships) and i == interstate_premierships[z]:
         z += 1
-for i in range(1, k):
+    premierships_per_year.append(z)
+    #if z == len(interstate_premierships):
+    #    continue
+for i in range(0, k):#1 instead of 0??
     expected_premierships_per_year[i] = expected_premierships_per_year[i - 1] + number_of_interstate_sides_per_year[i] / 100
 premierships_compared_to_progression = [100 * premierships_per_year[i] / expected_premierships_per_year[i] for i in range(k)]
 premierships_compared_to_rounded_progression = [100 * premierships_per_year[i] / round(expected_premierships_per_year[i]) if round(expected_premierships_per_year[i]) != 0 else 1 for i in range(k)]
@@ -848,7 +909,6 @@ r_squared = 0'''
 fig2 = plt.figure()
 ay = fig2.add_subplot(111)
 ay.set_xticks(range(1980, math.ceil(last_season / 5) * 5 + 1, 5))
-ay.set_yticks(range(14))
 ay.minorticks_on()
 ay.grid(which='minor')
 ay.grid(which='major', color="black")
@@ -857,20 +917,28 @@ ay.grid(which='major', color="black")
 #ay.plot(x, finals_qualifiers_per_year, color='c', label="Number of interstate sides that played finals.", where='post')
 
 expected_interstate_premierships = sum(number_of_interstate_sides_per_year) / 100
-
+whichevers_higher = math.ceil(expected_interstate_premierships) if math.ceil(expected_interstate_premierships) > len(interstate_premierships) else len(interstate_premierships)
+ay.set_yticks(range(whichevers_higher + 1))
+#print(expected_interstate_premierships)
+print(premierships_per_year, interstate_premierships, expected_premierships_per_year)
 #crimson
 ay.plot(x, expected_premierships_per_year, color='b', label="Total expected premierships / (" + str(round(expected_interstate_premierships, 2)) + "). Total expected grand final appearances: " + str(round(2 * expected_interstate_premierships, 2)))#, where='post'
-ay.step(x, premierships_per_year, color='b', label="Total premierships _| (" + str(len(y_10_2)) + "). Total grand final appearances: "+ str((len(list((set(interstate_v_vic_grand_finals) & set(interstate_premierships)) ^ set(interstate_premierships))) + len(list(set(interstate_v_vic_grand_finals) | set(interstate_premierships))))))
-colours = {"Gold Coast":"yellow", "Richmond":"yellow", "North Melbourne":"royalblue", "Essendon":"red", "Carlton":"navy", "Collingwood":"black", "Melbourne":"lime", "Hawthorn":"brown", "Fitzroy":"grey", "St Kilda":"crimson", "Western Bulldogs":"green", "Fremantle":"purple", "Greater Western Sydney":"orange", "Brisbane Lions": "orangered", "Port Adelaide":"cyan", "West Coast":"goldenrod", "Sydney":"deeppink", "Adelaide":"royalblue"} #ugh takes so long to write out
+ay.step(x, premierships_per_year, color='b', label="Total premierships _| (" + str(len(y_10_2)) + "). Total grand final appearances: "+ str((len(list((set(interstate_v_vic_grand_finals) & set(interstate_premierships)) ^ set(interstate_premierships))) + len(list(set(interstate_v_vic_grand_finals) | set(interstate_premierships))))), where='post')
+colours = {"Gold Coast":"yellow", "Richmond":"yellow", "Geelong":"royalblue", "North Melbourne":"royalblue", "Essendon":"red", "Carlton":"navy", "Collingwood":"black", "Melbourne":"lime", "Hawthorn":"brown", "Fitzroy":"grey", "St Kilda":"crimson", "Western Bulldogs":"green", "Fremantle":"purple", "Greater Western Sydney":"orange", "Brisbane Lions": "orangered", "Port Adelaide":"cyan", "West Coast":"goldenrod", "Sydney":"deeppink", "Adelaide":"royalblue"} #ugh takes so long to write out
 #ab.plot(x, finals_cutoff, color='k', label="Number of sides allowed to play finals.")
 for i in current_clubs:
     if i._interstate:
         ay.set_prop_cycle(color=colours[i._name])
-        ay.plot(x[x.index(i._year_entered_comp):], i._expected_premierships, label="Expected / and actual _| premierships for " + i._name + " (Expected: " + str(round(i._expected_premierships[-1], 2)) + ", Actual: " + str(i._premierships[-1]) + ')')#, where='post'
-        ay.step(x[x.index(i._year_entered_comp):], i._premierships, where='post')
+        if i._name == "Fitzroy":
+            ay.plot(x[x.index(i._year_entered_comp) if i._year_entered_comp >= year_started else 0:15], i._expected_premierships[:15], label="Expected / and actual _| premierships for " + i._name + " (Expected: " + str(round(i._expected_premierships[-1], 2)) + ", Actual: " + str(i._premierships[-1]) + ')')#, where='post'
+            ay.step(x[x.index(i._year_entered_comp) if i._year_entered_comp >= year_started else 0:15], i._premierships[:15], where='post')
+            continue
+        ay.plot(x[x.index(i._year_entered_comp) if i._year_entered_comp >= year_started else 0:], i._expected_premierships, label="Expected / and actual _| premierships for " + i._name + " (Expected: " + str(round(i._expected_premierships[-1], 2)) + ", Actual: " + str(i._premierships[-1]) + ')')#, where='post'
+        ay.step(x[x.index(i._year_entered_comp) if i._year_entered_comp >= year_started else 0:], i._premierships, where='post')
 plt.legend()
 plt.xlabel('Years')
 plt.ylabel('Premierships')
 plt.title('Progression of Interstate Premierships ' + str(year_started) + "-" + str(last_season))
 
+#quit()
 plt.show()

@@ -1,13 +1,15 @@
 #help("modules") #
+import math
+import statistics
+import collections
 import urllib.request
 import matplotlib.pyplot as plt
-import statistics
 import numpy as np
 import pandas as pd
 from bs4 import BeautifulSoup
 
 
-
+SHOW_GRAPHS = False
 
 """
 Note to me: the ladder change year by year doesn't make any sense. You naturally believe that all things being
@@ -76,11 +78,10 @@ for i in teams:
 means = []
 modes = []
 medians = []
+expected_premierships = []
 
 count = 1
 for i in teams:
-    if i == "Fitzroy":
-        continue
     year_began = teams[i][0][0]
     start_diff = year_began - year_started
     x = teams[i][0]
@@ -90,8 +91,34 @@ for i in teams:
     ax.set_prop_cycle(color=running_colours)
     ax.step([i for i in range(year_began, year_began + len(teams_in_comp[start_diff:]))], teams_in_comp[start_diff:], 'k--', label="Teams In Comp", where="post")
     ax.plot(x, y, label="Position")#, where='mid'
+    y3 = [sum([1 / j for j in teams_in_comp[start_diff:start_diff + i]]) for i in range(len(x))]
+    expected_premierships.append((y3[-1], i))
+    print("Expected Premierships", y3, y3[-1], [teams_in_comp[start_diff:i] for i in range(len(x))])
+    ax.plot(x, y3, label="Expected Premierships")
+    years_in_top_4_since_1995 = []
+    streak = []
+    streaks = []
+    year_grah = 1995 if x[0] <= 1995 else x[0]
+    print(i)
+    #print(year_grah, range(x.index(year_grah), x.index(year_grah) + last_season + 1 - year_grah))
+
     ax.scatter(x, y)
     ax.invert_yaxis()
+    if i == "Fitzroy":
+       continue
+    for k in range(x.index(year_grah), x.index(year_grah) + last_season + 1 - year_grah):
+        if y[k] < 5:
+            print("in top 4", x[k], y[k])
+            years_in_top_4_since_1995.append((x[k], y[k]))
+            streak.append(y[k])
+        elif len(streak) > 0:
+            print("aw dropped it", x[k])
+            x2 = range(x[k] - len(streak), x[k])
+            ax.plot(x2, streak, ':')
+            streaks.append(x2)
+            streak = []
+
+
     avg_in_comp = []
     team_stats = []
     start_place = start_diff
@@ -149,6 +176,19 @@ for i in teams:
         years_between_finals = [years_played_finals[0] - year_began]
     
     print(i) 
+    n_club_streaks = len(streaks)
+    print(n_club_streaks)
+    if n_club_streaks > 0:
+        avg_len_club_streaks = statistics.mean([len(i) for i in streaks])
+        print(avg_len_club_streaks)
+        if n_club_streaks > 1:
+            if streaks[0][0] != year_grah:
+                streaks = [[year_grah]] + streaks
+            if streaks[-1][-1] != last_season:
+                streaks.append([last_season])
+            print(streaks)
+            len_years_tween_streaks = statistics.mean([streaks[i + 1][0] - streaks[i][-1] for i in range(len(streaks) - 1)])
+            print(len_years_tween_streaks)
     
     print(frock)
     print(years_played_finals)
@@ -170,10 +210,14 @@ for i in teams:
     maybe if avg of next 3 data points greater than everage of last 3 by certain amount then break
     cos adhusting avg and the val abs(val must be > isnt working)
     """
-    avg = 4
+    avg = 3#4
     moving_average = [round(i, 2) for i in pd.DataFrame(y).rolling(avg).mean()[0].tolist()[avg - 1:]]
     #print(moving_average)
     moving_average_diff = np.diff(np.array(moving_average)).tolist()
+    start = math.floor((avg - 1) / 2)
+    stop = len(x) - start
+    reduced = x[start:stop]
+    ax.plot(reduced[:stop - (len(reduced) - len(moving_average)) - 1], moving_average, color='brown', label="Rolling " + str(avg) + " year ladder position avg")#
     print(moving_average_diff)
     size = len(moving_average_diff)
     idx_list = [idx + 1 for idx, val in
@@ -234,5 +278,132 @@ print(medians)
 print(statistics.mean(means))
 print(statistics.mean(modes))
 print(statistics.mean(medians))
-#quit()
-plt.show()
+
+print("Premiership differentials: (where a club is relative to their normally distributed expected premiership schedule)")
+URL = 'https://en.wikipedia.org/wiki/List_of_VFL/AFL_premiers'
+text = getURL(URL)
+soup = BeautifulSoup(text, 'html.parser')
+rows = soup.find('table', attrs={'style':'text-align:center;'}).findAll('tr')
+rows = sorted(rows[2:20], key = lambda row: int(row.find('td').text[:4]))
+expected_premierships = sorted(expected_premierships)
+differentials = []
+for row in rows:
+    club = row.find('th').text.strip()
+    gfs = row.findAll('td')
+    premierships = len([int(i.text) for i in gfs[2].findAll('a')])
+    a = [i for i in expected_premierships if i[1] == club]
+    if club == "South Melbourne/Sydney[c]":
+        a = [i for i in expected_premierships if i[1] == "Sydney"]
+    elif club == "North Melbourne/Kangaroos[d]":
+        a = [i for i in expected_premierships if i[1] == "North Melbourne"]
+    elif club == "Footscray/Western Bulldogs[e]":
+        a = [i for i in expected_premierships if i[1] == "Western Bulldogs"]
+    differentials.append((premierships - a[0][0], club))
+a = [i for i in expected_premierships if i[1] == "Gold Coast"]
+differentials.append((-1 * a[0][0], "Gold Coast"))
+adder = 1
+for j, i in enumerate(sorted(differentials)):
+    addendum = ""
+    if i[0] > 0 and i[1] != "Richmond":
+        addendum = "== Will be okay with them winning another premiership in " + str(1 + math.ceil(18 * i[0])) + " seasons time."
+    elif i[0] < 0:
+        addendum = "== Would take " + str(1 - math.floor(-18 * i[0])) + " seasons to root against them again if Richmond ain't in it"
+    rounded = round(i[0], 2)
+    pre = ""
+    if i[1] == "Fitzroy":
+        adder -= 1
+    else:
+        pre = str(j + adder) + '.'
+    print(pre, i[1] + ':', rounded if rounded < 0 else '+' + str(rounded), addendum)
+print("2020: The fastest Saints could get into the green on expected premierships was if they 11-peated starting with 2021 flag. How many generations for them to catch the norm? My descendants (if I have any) will have long forgotten me.")
+
+
+too_late = last_season + 1
+change_in_ladder_positions = []
+change_in_ladder_positions_diff = []
+year_im_doing_this = 2000#9
+
+print("Big rises and falls into and out of the top 4:")
+for k in range(year_im_doing_this, too_late):
+    #print(k)
+    top8 = [0] * 8
+    top8_diff = [0] * 8
+    previous_year = k - 1
+    for i in teams:
+        #print(i, teams[i][0], teams[i][1])
+        if teams[i][0][-1] <= previous_year or teams[i][0][0] > previous_year:
+            #print(k, i)
+            continue
+        this_years_index = k - last_season
+        # if len(teams[i][0]) != len(teams[i][1]):
+        #     print("booyah biatch")
+        this_years_position = teams[i][1][teams[i][0].index(k)]
+        last_years_index = this_years_index - 1
+        last_years_position = teams[i][1][teams[i][0].index(k - 1)]
+        if this_years_position > 8:
+            if last_years_position < 5:
+                suffix = "th"
+                if last_years_position == 1:
+                    suffix = "st"
+                elif last_years_position == 2:
+                    suffix = "nd"
+                elif last_years_position == 3:
+                    suffix = "rd"
+                print(teams[i][0][teams[i][0].index(k)], i + '.', "\x1B[3mFinished " + str(teams[i][1][teams[i][0].index(k)]) + "th" + "\x1B[23m.", "Fell", this_years_position - last_years_position, "ladder positions from", str(last_years_position) + suffix, "last year")
+            continue
+        top8[this_years_position - 1] = last_years_position
+        top8_diff[this_years_position - 1] = -1 * (this_years_position - last_years_position)
+        if this_years_position < 5 and last_years_position > 8:
+            suffix = "th"
+            if this_years_position == 1:
+                suffix = "st"
+            elif this_years_position == 2:
+                suffix = "nd"
+            elif this_years_position == 3:
+                suffix = "rd"
+            print(teams[i][0][teams[i][0].index(k - 1)], i + '.', "\x1B[3mFinished " + str(teams[i][1][teams[i][0].index(k - 1)]) + "th" + "\x1B[23m.", "Rose", top8_diff[this_years_position - 1], "ladder positions next year to", str(this_years_position) + suffix)
+        #print(i, last_years_position, this_years_position, teams[i][1])
+    change_in_ladder_positions.append(top8)
+    change_in_ladder_positions_diff.append(top8_diff)
+    #print(top8)
+
+not_in_4 = []
+not_in8 = []
+people_from_outside_8 = []
+total_top8_change = []
+print("Ladder pos previous year")
+for i in change_in_ladder_positions:
+    n_not_in_4 = 0
+    n_not_in_8 = 0
+    total_changes_to_the_8 = 0
+    for k in i[:4]:
+        if k > 8:
+            n_not_in_8 += 1
+            total_changes_to_the_8 += 1
+            people_from_outside_8.append(k)
+        elif k > 4:
+            n_not_in_4 += 1
+    for k in i[4:]:
+        if k > 8:
+            total_changes_to_the_8 += 1
+    not_in_4.append(n_not_in_4)
+    not_in8.append(n_not_in_8)
+    total_top8_change.append(total_changes_to_the_8)
+    print(change_in_ladder_positions.index(i) + year_im_doing_this, i)
+print(collections.Counter(sum(change_in_ladder_positions, [])))
+print("Subsequent change in ladder pos")
+for i in change_in_ladder_positions_diff:
+    print(i)
+print("Year_2_year_changes, top4, top8")
+for i in range(len(not_in_4)):
+    print(i + year_im_doing_this, "->", i + year_im_doing_this + 1, not_in_4[i], "team(s) from 5th-8th moved into top 4,", not_in8[i], "team(s) from outside the top 8 got into the top 4")
+print("Average of last list")
+print(statistics.mean(not_in_4), statistics.mean(not_in8))
+print("Outside-8->in ladder pos mean, median, mode, max, min, shebang")
+print(statistics.mean(people_from_outside_8), statistics.median(people_from_outside_8), statistics.mode(people_from_outside_8), min(people_from_outside_8), max(people_from_outside_8), people_from_outside_8, collections.Counter(people_from_outside_8))
+print("Total changes to the 8")
+print(statistics.mean(total_top8_change), total_top8_change, collections.Counter(total_top8_change))
+print("1995-2020 there has NEVER been less than two changes to the top 8.")
+
+if SHOW_GRAPHS:
+    plt.show()
