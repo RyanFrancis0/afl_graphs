@@ -399,11 +399,11 @@ for year in years:
         if year >= 1983 and match._margin != 0:
             #print(year, clubs[team1]._seasons[year - 1]._final_ladder_position, match._winner, team2)
             if clubs[team1]._seasons[year]._final_ladder_position == 1 and match._winner == team2:
-                print(year, team1, "lost to " + team2 + ", who finished", clubs[team2]._seasons[year]._home_and_away_ladder_position, "that year, by", abs(match._margin), "points at the", venue)
+                print(year, team1, "lost to " + team2 + ", who finished", clubs[team2]._seasons[year]._home_and_away_ladder_position, "that year, by", abs(match._margin), "points at the", venue, "in round", clubs[team1]._seasons[year]._games_in_season - len(clubs[team1]._seasons[year]._finals_matches) - len(clubs[team1]._seasons[year]._home_and_away_matches))
                 if abs(match._margin) >=45: #clubs[team2]._seasons[year]._home_and_away_ladder_position >= season._teams_in_season - 2:
-                    print("//////////////////////////////", season._teams_in_season)
+                    print("////////////////////////////// the bye isnt taken into account btws", season._teams_in_season)
             elif clubs[team2]._seasons[year]._final_ladder_position == 1 and match._winner == team1:
-                print(year, team2, "lost to " + team1 + ", who finished", clubs[team1]._seasons[year]._home_and_away_ladder_position, "that year, by", abs(match._margin), "points at the", venue)
+                print(year, team2, "lost to " + team1 + ", who finished", clubs[team1]._seasons[year]._home_and_away_ladder_position, "that year, by", abs(match._margin), "points at the", venue, "in round", clubs[team1]._seasons[year]._games_in_season - len(clubs[team1]._seasons[year]._finals_matches) - len(clubs[team1]._seasons[year]._home_and_away_matches))
                 if abs(match._margin) >=45: #clubs[team1]._seasons[year]._home_and_away_ladder_position >= season._teams_in_season - 2:
                     print("//////////////////////////////", season._teams_in_season)
         '''
@@ -886,6 +886,8 @@ I write this precedeeing the 2021 season. So as of now, interstate sides have
     check, 2015 when for the first and so far only ever time in 40 years of scheduling interstate v vic
     games, the AFL decided to schedule an odd number of games, and rounded the resulting .5 remainder
     down in favour of the vics.
+    edit: turns out it was rescheduling cos of the then Adelaide coach Phil Walsh's untimely and
+    unfortunate passing, may he rest in peace.
 """
 
 

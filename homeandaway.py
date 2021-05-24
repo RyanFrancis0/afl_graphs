@@ -9,7 +9,7 @@ import pandas as pd
 from bs4 import BeautifulSoup
 
 
-SHOW_GRAPHS = False
+SHOW_GRAPHS = True
 
 """
 Note to me: the ladder change year by year doesn't make any sense. You naturally believe that all things being
