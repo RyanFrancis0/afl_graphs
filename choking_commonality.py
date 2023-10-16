@@ -12,7 +12,7 @@ from bs4 import BeautifulSoup
 
 """
 Hypothesis 2: A refutation of the more wins and/or better percentage is equivalent to a better side 
-theory. By natural extension, that they are directly related (e.g. 10 more wins better side 
+theory. By natural extension, that they are directly related (e.g. 10 more wins is a better side 
 than 2 more).
 
 1st:
@@ -319,6 +319,8 @@ for i in counter5.most_common():
     prem_diff += i[0] * i[1]
 counter6 = collections.Counter([i[1] for i in finals_home_and_away_differentials if i[4]])
 print("percentage of grand finalists winners:", counter6)
+counter10 = collections.Counter([round(i[1] / 10) * 10 for i in finals_home_and_away_differentials if i[4]])
+print("frequency of rounded percentage of grand finalists winners:", counter10)
 counter8 = collections.Counter([i[2] for i in finals_home_and_away_differentials if i[4]])
 print("Ladder positions of premiers: ", counter8)
 counter9 = collections.Counter([i[3] for i in finals_home_and_away_differentials if i[4]])

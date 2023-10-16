@@ -351,16 +351,21 @@ if DRAWING_ROUNDS_GRAPH:
         for club in clubs:
             if clubs[club]._year_entered_comp > year or club == "Footscray" or (year >= 1997 and (clubs[club] == Bears or clubs[club] == Fitzroy)):
                 continue
-            rd = 18#len(new_stored_info[year][club]["Frees"])
+            rd = 11 #len(new_stored_info[year][club]["Frees"])
+            if year in [2019, 2020] and club == "Richmond":
+                print(year, round(sum(new_stored_info[year][club]["Frees"][:rd]) / sum(new_stored_info[year][club]["Frees Against"][:rd]), 6) * 100) #str(+ '%)')
             if len(new_stored_info[year][club]["Frees"]) < rd or year == 2021:
                 continue
-            year_precentage = round(sum(new_stored_info[year][club]["Frees"][:rd]) / sum(new_stored_info[year][club]["Frees Against"][:rd]), 6)
+            year_precentage = round(sum(new_stored_info[year][club]["Frees"][:rd]) / sum(new_stored_info[year][club]["Frees Against"][:rd]), 6) * 100 #str(+ '%)'
             check.append((year_precentage, club, year))
-    print([(idx + 1, i) for idx, i in enumerate(sorted(check)[:30])])
+    check.append((69.91, 'Richmond', 2021))
+    a = [(idx + 1, i) for idx, i in enumerate(sorted(check)[:30])]
+    for i in a:
+        print(str(i[1][2]), i[1][1], str(i[1][0]) + '%')
     quit()
-    """
+    #"""
 
-    selected_year = 2021
+    selected_year = 2020
     selected_clubs = [i for i in clubs]#["Richmond", "Geelong"]#, "West Coast", "Geelong", "Hawthorn"]#
     rolling_games = 5
     print("Drawing Graphs")
@@ -407,9 +412,10 @@ if DRAWING_ROUNDS_GRAPH:
         plt.title(stat + " Per Game in the " + str(selected_year) + " Season")
 
 DRAW_YEAR_GRAPH = True
+
 if DRAW_YEAR_GRAPH:
     stored_info = {}
-    grab_new_data = True
+    grab_new_data = False
     if grab_new_data:
         stored_info["info"] = getURL(universalURL)
         with open(path_to_file, "w") as f:
@@ -433,6 +439,7 @@ if DRAW_YEAR_GRAPH:
     year_by_year_master_averages["Disposals"] = []
     year_by_year_master_averages["(avg_goals*6+avg_behinds)"] = []
     year_by_year_master_averages["(avg_goals+avg_behinds)"] = []
+    year_by_year_master_averages["(avg_frees_for-avg_frees_against)"] = []
     #year_by_year_master_averages["(avg_frees_for/avg_frees_against)"] = []
 
     for ea_stat in year_by_year_master_averages:
@@ -443,12 +450,13 @@ if DRAW_YEAR_GRAPH:
         clubs[ea_club]._stats["Disposals"] = []
         clubs[ea_club]._stats["(avg_goals*6+avg_behinds)"] = []
         clubs[ea_club]._stats["(avg_goals+avg_behinds)"] = []
+        clubs[ea_club]._stats["(avg_frees_for-avg_frees_against)"] = []
 
     #Get comp avg year by year
     for ea_row in master_average_rows[1:]:
         columns = ea_row.findAll('td')[1:]
         for idx, key in enumerate(year_by_year_master_averages):
-            if key == "Disposals" or key == "(avg_goals*6+avg_behinds)" or key == "(avg_goals+avg_behinds)":
+            if key == "Disposals" or key == "(avg_goals*6+avg_behinds)" or key == "(avg_goals+avg_behinds)" or key == "(avg_frees_for-avg_frees_against)":
                 continue
             new_stat = columns[idx].text.strip()
             if new_stat:
@@ -459,6 +467,7 @@ if DRAW_YEAR_GRAPH:
         year_by_year_master_averages["Disposals"].append(year_by_year_master_averages["Kicks"][-1] + year_by_year_master_averages["Handballs"][-1])
         year_by_year_master_averages["(avg_goals*6+avg_behinds)"].append(year_by_year_master_averages["Goals"][-1] * 6 + year_by_year_master_averages["Behinds"][-1])
         year_by_year_master_averages["(avg_goals+avg_behinds)"].append(year_by_year_master_averages["Goals"][-1] + year_by_year_master_averages["Behinds"][-1])
+        year_by_year_master_averages["(avg_frees_for-avg_frees_against)"].append(year_by_year_master_averages["Frees"][-1] - year_by_year_master_averages["Frees Against"][-1])
     print("done.")
     print("")
 
@@ -491,6 +500,11 @@ if DRAW_YEAR_GRAPH:
         for idx in range(len(clubs[ea_club]._stats["Goals"])):
             clubs[ea_club]._stats[stat].append(clubs[ea_club]._stats["Goals"][idx] + clubs[ea_club]._stats["Behinds"][idx])
     print("...." + stat + " done.")
+    stat = "(avg_frees_for-avg_frees_against)"
+    for ea_club in ordered_clubs:
+        for idx in range(len(clubs[ea_club]._stats["Frees"])):
+            clubs[ea_club]._stats[stat].append(clubs[ea_club]._stats["Frees"][idx] - clubs[ea_club]._stats["Frees Against"][idx])
+    print("...." + stat + " done.")
     print("")
     print("Calculating standard deviations (of avgs):")
     standard_deviations_of_averages = {}
@@ -508,7 +522,30 @@ if DRAW_YEAR_GRAPH:
     print("Finally all done. Data now manipulatable/graphable.")
     print("")
 
-    teams_to_analyse = ["Richmond", "Western Bulldogs"]# [i for i in ordered_clubs if (i != "Brisbane Bears" and i != "Fitzroy")]#["Richmond", "West Coast"]# 
+    teams_to_analyse = ["Richmond"] #[i for i in ordered_clubs if (i != "Brisbane Bears" and i != "Fitzroy")]#["Richmond", "Western Bulldogs"]# ["Richmond", "West Coast"]# 
+
+    # print("Deep dive into 1 particular team:")
+    # particular_team = "Richmond"
+    # n_years_2_go_back = 10
+    # for stat in year_by_year_master_averages:
+    #     years = []
+    #     for i in range(n_years_2_go_back):
+    #         team_numbers = []
+    #         for ea_club in teams_to_analyse:
+    #             team_numbers.append((clubs[ea_club]._stats[stat][-1 * (i + 1)], ea_club))
+    #             for idx in range(len(clubs[ea_club]._stats[stat])):
+    #                 break
+    #         team_numbers = sorted(team_numbers, reverse=True)
+    #         position = [idx for idx, (stat2, team) in enumerate(team_numbers) if team == particular_team][0] + 1
+    #         years.append(position)
+    #     averages = []
+    #     for z in years:
+    #         averages.append(statistics.mean(years[:-1]))
+    #     print(stat + ": #" + str(position) + ", " + "different from last year")
+    # print("done")
+    # print("")
+    # quit()
+
 
     print("Drawing graphs for set teams (" + str(teams_to_analyse) + ") v league avgs:")
     for stat in year_by_year_master_averages:
@@ -529,8 +566,8 @@ if DRAW_YEAR_GRAPH:
         x = years[len(years) - len(year_by_year_master_averages[stat]):]
         ax.plot(x, year_by_year_master_averages[stat], c="b", label="League Mean", ls=":")#, where="post"
         ax.scatter(x, year_by_year_master_averages[stat], c="b")
-        ax.plot(x, medians[stat], c="k", label="League Median", ls=":")
-        ax.scatter(x, medians[stat], c="k")
+        # ax.plot(x, medians[stat], c="k", label="League Median", ls=":")
+        # ax.scatter(x, medians[stat], c="k")
         # ax.plot(x, [year_by_year_master_averages[stat][i] - standard_deviations_of_averages[stat][i] for i in range(len(year_by_year_master_averages[stat]))], c="r", label="League Avg - One Std Deviation")#, where="post"
         # ax.scatter(x, [year_by_year_master_averages[stat][i] - standard_deviations_of_averages[stat][i] for i in range(len(year_by_year_master_averages[stat]))], c="r")
         # ax.plot(x, [year_by_year_master_averages[stat][i] + standard_deviations_of_averages[stat][i] for i in range(len(year_by_year_master_averages[stat]))], c="green", label="League Avg + One Std Deviation")#, where="post"

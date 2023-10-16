@@ -30,9 +30,9 @@ I could've made that above process automatic but couldn't be bothered/didn't wan
 
 
 #Constants
-last_season = 2020 #?
+last_season = 2023 #? update manuslly
 universalURL = 'https://afltables.com/afl/seas/{}.html'
-year_started = 1990 # 1897<- interesting
+year_started = 1897#1992#1897#<- interesting #1990
 colours = {"GoldCoast":"yellow", "Geelong":"royalblue", "Essendon":"red", "Carlton":"navy", "Collingwood":"black", "Melbourne":"lime", "Hawthorn":"brown", "Fitzroy":"grey", "St Kilda":"crimson", "Richmond":"yellow", "North Melbourne":"blue", "Western Bulldogs":"green", "Fremantle":"purple","Greater Western Sydney":"orange", "Brisbane Lions": "orangered", "Port Adelaide":"cyan", "West Coast":"darkgoldenrod", "Sydney":"deeppink", "Adelaide":"royalblue"} #ugh takes so long to write out
 
 def getURL(url):
@@ -54,82 +54,83 @@ with open(path_to_file, "r") as f:
     clubs = ast.literal_eval(f.read())
 
 #MAIN:
-""" RETRIEVE DATA
-clubs = {} # {"club":[[years total], [years won]]}
-for k in range(year_started, last_season + 1):
-    text = getURL(universalURL.format(k))
-    soup = BeautifulSoup(text, 'html.parser')
-    tables = soup.findAll('table')
-    if tables[-2].text != "Grand Final":
-        #1987 & 1924
-        continue
-    flag = False
-    for i in tables:
-        if flag == True:
-            flag = False
-            data = i.findAll('tr')
-            team1 = data[0].find('a').text
-            team2 = data[1].find('a').text
-            if team1 == "Kangaroos":
-                team1 = "North Melbourne"
-            elif team1 == "Brisbane Bears":
-                team1 = "Brisbane Lions"
-            elif team1 == "Footscray":
-                team1 = "Western Bulldogs"
-            elif team1 == "South Melbourne":
-                team1 = "Sydney"
-            if team2 == "Kangaroos":
-                team2 = "North Melbourne"
-            elif team2 == "Brisbane Bears":
-                team2 = "Brisbane Lions"
-            elif team2 == "Footscray":
-                team2 = "Western Bulldogs"
-            elif team2 == "South Melbourne":
-                team2 = "Sydney"
-            if team1 in clubs:
+RETRIEVE_DATA = True
+if RETRIEVE_DATA:
+    clubs = {} # {"club":[[years total], [years won]]}
+    for k in range(year_started, last_season + 1):
+        text = getURL(universalURL.format(k))
+        soup = BeautifulSoup(text, 'html.parser')
+        tables = soup.findAll('table')
+        if tables[-2].text != "Grand Final":
+            #1987 & 1924
+            continue
+        flag = False
+        for i in tables:
+            if flag == True:
+                flag = False
+                data = i.findAll('tr')
+                team1 = data[0].find('a').text
+                team2 = data[1].find('a').text
+                if team1 == "Kangaroos":
+                    team1 = "North Melbourne"
+                elif team1 == "Brisbane Bears":
+                    team1 = "Brisbane Lions"
+                elif team1 == "Footscray":
+                    team1 = "Western Bulldogs"
+                elif team1 == "South Melbourne":
+                    team1 = "Sydney"
+                if team2 == "Kangaroos":
+                    team2 = "North Melbourne"
+                elif team2 == "Brisbane Bears":
+                    team2 = "Brisbane Lions"
+                elif team2 == "Footscray":
+                    team2 = "Western Bulldogs"
+                elif team2 == "South Melbourne":
+                    team2 = "Sydney"
+                if team1 in clubs:
+                    clubs[team1][0].append(k)
+                else:
+                    clubs[team1] = [[k], []]
+                if team2 in clubs:
+                    clubs[team2][0].append(k)
+                else:
+                    clubs[team2] = [[k], []]
+            if i.text == "Preliminary Final":
+                flag = True
+        gfdata = tables[len(tables) - 1].findAll('tr')
+        team1 = gfdata[0].find('a').text
+        team2 = gfdata[1].find('a').text
+        if team1 == "Kangaroos":
+            team1 = "North Melbourne"
+        elif team1 == "Brisbane Bears":
+            team1 = "Brisbane Lions"
+        elif team1 == "Footscray":
+            team1 = "Western Bulldogs"
+        elif team1 == "South Melbourne":
+            team1 = "Sydney"
+        if team2 == "Kangaroos":
+            team2 = "North Melbourne"
+        elif team2 == "Brisbane Bears":
+            team2 = "Brisbane Lions"
+        elif team2 == "Footscray":
+            team2 = "Western Bulldogs"
+        elif team2 == "South Melbourne":
+            team2 = "Sydney"
+        if team1 in clubs:
+            clubs[team1][1].append(k)
+            if k not in clubs[team1][0]:
                 clubs[team1][0].append(k)
-            else:
-                clubs[team1] = [[k], []]
-            if team2 in clubs:
+        else:
+            clubs[team1] = [[k], [k]]
+        if team2 in clubs:
+            clubs[team2][1].append(k)
+            if k not in clubs[team2][0]:
                 clubs[team2][0].append(k)
-            else:
-                clubs[team2] = [[k], []]
-        if i.text == "Preliminary Final":
-            flag = True
-    gfdata = tables[len(tables) - 1].findAll('tr')
-    team1 = gfdata[0].find('a').text
-    team2 = gfdata[1].find('a').text
-    if team1 == "Kangaroos":
-        team1 = "North Melbourne"
-    elif team1 == "Brisbane Bears":
-        team1 = "Brisbane Lions"
-    elif team1 == "Footscray":
-        team1 = "Western Bulldogs"
-    elif team1 == "South Melbourne":
-        team1 = "Sydney"
-    if team2 == "Kangaroos":
-        team2 = "North Melbourne"
-    elif team2 == "Brisbane Bears":
-        team2 = "Brisbane Lions"
-    elif team2 == "Footscray":
-        team2 = "Western Bulldogs"
-    elif team2 == "South Melbourne":
-        team2 = "Sydney"
-    if team1 in clubs:
-        clubs[team1][1].append(k)
-        if k not in clubs[team1][0]:
-            clubs[team1][0].append(k)
-    else:
-        clubs[team1] = [[k], [k]]
-    if team2 in clubs:
-        clubs[team2][1].append(k)
-        if k not in clubs[team2][0]:
-            clubs[team2][0].append(k)
-    else:
-        clubs[team2] = [[k], [k]]
-with open(path_to_file, "w") as f:
-    f.write(str(clubs))
-#"""
+        else:
+            clubs[team2] = [[k], [k]]
+    with open(path_to_file, "w") as f:
+        f.write(str(clubs))
+    #"""
 
 all_clubs_windows = 0
 all_club_window_lengths = []
